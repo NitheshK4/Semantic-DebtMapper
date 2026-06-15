@@ -1,0 +1,41 @@
+[
+  {
+    "event_type": "model_version_deployed",
+    "endpoint_id": "ticket_classifier",
+    "model_name": "xgb_urgency",
+    "model_version": "v3.1.0",
+    "artifact_uri": "s3://models/xgb_urgency/v3.1.0",
+    "deployed_at": "2026-01-10T00:00:00Z",
+    "owner": "ml-team",
+    "metadata": {
+      "framework": "xgboost",
+      "feature_schema_version": "fs_v5"
+    }
+  },
+  {
+    "event_type": "model_version_deployed",
+    "endpoint_id": "ticket_classifier",
+    "model_name": "xgb_urgency",
+    "model_version": "v4.2.0",
+    "artifact_uri": "s3://models/xgb_urgency/v4.2.0",
+    "deployed_at": "2026-06-01T10:00:00Z",
+    "owner": "ml-team",
+    "metadata": {
+      "framework": "xgboost",
+      "feature_schema_version": "fs_v7"
+    }
+  },
+  {
+    "event_type": "model_version_deployed",
+    "endpoint_id": "support_rag",
+    "model_name": "emb_retriever",
+    "model_version": "emb_v5",
+    "artifact_uri": "s3://models/emb_retriever/emb_v5",
+    "deployed_at": "2026-05-15T00:00:00Z",
+    "owner": "ml-team",
+    "metadata": {
+      "framework": "sentence-transformers",
+      "index_version": "emb_v3"
+    }
+  }
+]

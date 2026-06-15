@@ -1,0 +1,72 @@
+[
+  {
+    "schema_id": "label_schema_urgency",
+    "schema_version": "v2",
+    "effective_from": "2026-01-01T00:00:00Z",
+    "classes": [
+      {
+        "class_id": "low",
+        "display_name": "Low Priority",
+        "definition": "Ticket can be addressed within 48 hours.",
+        "positive_criteria": ["no_sla_risk"],
+        "negative_criteria": ["vip_customer"]
+      },
+      {
+        "class_id": "medium",
+        "display_name": "Medium Priority",
+        "definition": "Ticket should be addressed within 24 hours.",
+        "positive_criteria": ["standard_sla"],
+        "negative_criteria": ["critical_system_down"]
+      },
+      {
+        "class_id": "urgent",
+        "display_name": "Urgent",
+        "definition": "Ticket requires response within 2 hours per SLA policy v2.",
+        "positive_criteria": ["sla_breach_2h", "vip_customer"],
+        "negative_criteria": ["auto_resolved"]
+      },
+      {
+        "class_id": "critical",
+        "display_name": "Critical",
+        "definition": "System outage or security incident requiring immediate response.",
+        "positive_criteria": ["system_down", "security_incident"],
+        "negative_criteria": []
+      }
+    ]
+  },
+  {
+    "schema_id": "label_schema_urgency",
+    "schema_version": "v3",
+    "effective_from": "2026-03-01T00:00:00Z",
+    "classes": [
+      {
+        "class_id": "low",
+        "display_name": "Low Priority",
+        "definition": "Ticket can be addressed within 48 hours.",
+        "positive_criteria": ["no_sla_risk"],
+        "negative_criteria": ["vip_customer"]
+      },
+      {
+        "class_id": "medium",
+        "display_name": "Medium Priority",
+        "definition": "Ticket should be addressed within 24 hours.",
+        "positive_criteria": ["standard_sla"],
+        "negative_criteria": ["critical_system_down"]
+      },
+      {
+        "class_id": "urgent",
+        "display_name": "Urgent",
+        "definition": "Ticket requires response within 4 hours per SLA policy v3. Includes VIP escalations and payment failures.",
+        "positive_criteria": ["sla_breach_4h", "vip_customer", "payment_failure"],
+        "negative_criteria": ["auto_resolved"]
+      },
+      {
+        "class_id": "critical",
+        "display_name": "Critical",
+        "definition": "System outage or security incident requiring immediate response within 30 minutes.",
+        "positive_criteria": ["system_down", "security_incident"],
+        "negative_criteria": []
+      }
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "prompt_id": "support_classifier_prompt",
+    "prompt_version": "p3",
+    "template": "Classify the support ticket urgency using taxonomy v1. Classes: low, medium, urgent, critical. Urgent means response within 2 hours.",
+    "taxonomy_version": "tax_v1",
+    "deployed_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "prompt_id": "support_classifier_prompt",
+    "prompt_version": "p5",
+    "template": "Classify the support ticket urgency using taxonomy v2. Classes: low, medium, urgent, critical. Urgent means response within 4 hours and includes payment failures.",
+    "taxonomy_version": "tax_v2",
+    "deployed_at": "2026-05-01T00:00:00Z"
+  }
+]
