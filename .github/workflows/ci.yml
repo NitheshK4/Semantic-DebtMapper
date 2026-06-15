@@ -1,0 +1,52 @@
+name: SDM CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:15-pgdg
+        env:
+          POSTGRES_DB: sdm_test
+          POSTGRES_USER: sdm
+          POSTGRES_PASSWORD: sdm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+
+    - name: Run Pytest
+      env:
+        DATABASE_URL: postgresql://sdm:sdm@localhost:5432/sdm_test
+        REDIS_URL: redis://localhost:6379/0
+        API_KEY: your-api-key-here
+      run: |
+        pytest backend/tests/

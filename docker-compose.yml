@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: pgvector/pgvector:15-pgdg
+    container_name: sdm-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: sdm
+      POSTGRES_USER: sdm
+      POSTGRES_PASSWORD: sdm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sdm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sdm-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sdm-backend
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/workspace
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://sdm:sdm@postgres:5432/sdm
+      - REDIS_URL=redis://redis:6379/0
+      - API_KEY=your-api-key-here
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sdm-worker
+    restart: always
+    command: arq app.workers.worker.WorkerSettings
+    volumes:
+      - ./backend:/workspace
+    environment:
+      - DATABASE_URL=postgresql://sdm:sdm@postgres:5432/sdm
+      - REDIS_URL=redis://redis:6379/0
+      - API_KEY=your-api-key-here
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sdm-frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/workspace
+      - /workspace/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
