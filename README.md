@@ -1,92 +1,100 @@
-# Semantic Debt Mapper (SDM)
+# 🗺️ Semantic Debt Mapper (SDM)
 
-Find where old AI meaning assumptions still control your production decisions.
+[![CI Pipeline](https://github.com/NitheshK4/Semantic-DebtMapper/actions/workflows/ci.yml/badge.svg)](https://github.com/NitheshK4/Semantic-DebtMapper/actions/workflows/ci.yml)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
 
-Semantic Debt Mapper (SDM) is a production-grade AI reliability and governance platform that detects **semantic debt** across machine learning and LLM decision pipelines. 
-
-Semantic debt refers to accumulated inconsistencies between what your pipeline elements *mean* today (revised policies, new prompts, new schemas) versus what they *meant* when legacy models or business rules were calibrated.
+**Pinpoint legacy AI meaning assumptions before they silent-fail downstream decisions.**
 
 ---
 
-## 🏗️ System Architecture
+### What is Semantic Debt?
+**Semantic debt** represents the hidden mismatch between the *active meaning* of schema elements (revised policies, prompt changes, updated label definitions) and the *legacy calibrations* under which downstream business logic, machine learning models, or human override thresholds were originally configured. 
 
-SDM is structured as a full-stack system designed for high throughput log analysis and interactive lineage tracing:
+SDM is a production-grade AI reliability and governance platform that ingests your pipelines, models, and override logs to map, flag, and remediate these meaning inconsistencies.
 
-```
-[ Label Definitions ] ──> [ Models ] ──> [ Business Rules ] ──> [ Overrides ]
-                                   \             /
-                                    v           v
-                          [ Semantic Lineage Graph (SLG) ]
-                                         │
-                                         v
-                            [ Semantic Debt Detectors ]
-                                         │
-                                         v
-                         [ Priority Remediation Actions ]
+---
+
+## 🏗️ System Architecture & Data Flow
+
+SDM links data definitions, classification models, override rules, and human-in-the-loop decisions into a unified dependency model:
+
+```mermaid
+graph TD
+    %% Styling
+    classDef source fill:#1e1b4b,stroke:#4f46e5,stroke-width:1px,color:#e0e7ff;
+    classDef ingest fill:#18181b,stroke:#3f3f46,stroke-width:1px,color:#f4f4f5;
+    classDef engine fill:#0c4a6e,stroke:#0284c7,stroke-width:1px,color:#e0f2fe;
+    classDef detector fill:#1c1917,stroke:#d97706,stroke-width:1px,color:#fffbeb;
+    classDef output fill:#064e3b,stroke:#059669,stroke-width:1px,color:#ecfdf5;
+
+    %% Nodes
+    A1["Label Definitions & Schemas"]:::source
+    A2["Model Inferences & Predictions"]:::source
+    A3["Business Rules & Thresholds"]:::source
+    A4["Reviewer Overrides & Logs"]:::source
+
+    B["Ingestion Engine (FastAPI)"]:::ingest
+    
+    C1["Semantic Lineage Builder"]:::engine
+    C2["Scoring & Trend Engine"]:::engine
+
+    subgraph Detectors ["Semantic Debt Detectors"]
+        D1["Class Meaning Drift (CMD)"]:::detector
+        D2["Embedding Space Fracture (ESF)"]:::detector
+        D3["Rule-Model Conflict (RMC)"]:::detector
+        D4["Human-Model Divergence (HMD)"]:::detector
+        D5["Ghost Feature Misalignment (GFM)"]:::detector
+    end
+
+    E1["Interactive Lineage Graph"]:::output
+    E2["Action Center & Remediation"]:::output
+    E3["PDF Audit Reports"]:::output
+
+    %% Connections
+    A1 & A2 & A3 & A4 --> B
+    B --> C1 & C2
+    C1 & C2 --> Detectors
+    D1 & D2 & D3 & D4 & D5 --> E1 & E2 & E3
 ```
 
 ### Technical Stack
-* **Backend:** Python FastAPI, SQLAlchemy ORM, SQLite (local development) / PostgreSQL (production with pgvector).
+* **Backend:** Python FastAPI, SQLAlchemy ORM, SQLite (local development) / PostgreSQL (production with `pgvector`).
 * **Detectors:** NumPy-based vector similarity calculation, statistical drift analysis, and boundary override detection.
-* **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Flow (for interactive lineage graphing), Recharts (for trend analysis).
-* **Testing:** Pytest (100% test passing coverage for ingestion, API endpoints, and detector heuristics).
+* **Frontend:** React 19, TypeScript, Vite, Vanilla CSS custom styling, React Flow (interactive lineage graphs), Recharts (trends and data analysis).
+* **Testing:** Pytest (ingestion, API endpoints, and detector heuristics).
 
 ---
 
-## 🔍 Semantic Debt Detectors
+## 🔍 Core Detectors
 
-SDM runs 5 specialized, deterministic detectors to audit pipeline components for meaning drift:
+SDM continuously audits ML pipelines using 5 specialized, deterministic detectors:
 
-### 1. Class Meaning Drift (CMD)
-* **Objective:** Detects when a classification label's semantic definition shifts between schema updates while historical data remains unaligned.
-* **Mechanism:** 
-  1. Computes the cosine similarity between sentence embeddings of consecutive label definitions.
-  2. Measures the delta in reviewer override rates before and after the schema update.
-  3. Triggers if definition similarity is $< 0.92$ and the segment override rate increases by $> 10\%$.
-
-### 2. Embedding Space Fracture (ESF)
-* **Objective:** Detects when retrieval/search indices run on legacy embedding representations while the querying model uses a newer geometry.
-* **Mechanism:**
-  1. Compares the active deployed model version with the index version metadata of the vector database.
-  2. Flags a critical mismatch when the active model's embedding outputs do not match the indexing version geometry.
-
-### 3. Rule-Model Conflict (RMC)
-* **Objective:** Detects post-processing business rules or threshold overrides calibrated for legacy models that are still applied to new model predictions.
-* **Mechanism:**
-  1. Identifies rules referencing older model versions.
-  2. Analyzes the model output score distribution near the decision boundary (threshold $\pm 0.05$).
-  3. Measures the human override (flip) rate in that band. If the flip rate is $> 20\%$, RMC triggers.
-
-### 4. Human-Model Divergence (HMD)
-* **Objective:** Identifies segments of input space where reviewers consistently reject model predictions.
-* **Mechanism:**
-  1. Groups inferences and overrides by features/cohorts (e.g. `region=EU, channel=mobile`).
-  2. Compares the segment override rate with the global baseline override rate for that class.
-  3. Triggers if the segment override rate is $> 20\%$ and exceeds the baseline by $> 15\%$, extracting override themes using word-frequency analysis.
-
-### 5. Ghost Feature Misalignment (GFM)
-* **Objective:** Detects business rules referencing features that are stale, renamed, or modified in the current model schema.
-* **Mechanism:**
-  1. Inspects feature schemas across consecutive model versions.
-  2. Scans rule expressions using regular expressions to find legacy feature dependencies.
-  3. Flags rules utilizing features that are no longer actively produced or whose definitions have drifted.
+| Detector | Target Risk | Mechanism | Trigger Threshold |
+| :--- | :--- | :--- | :--- |
+| **1. Class Meaning Drift (CMD)** | Shifted schema definitions with outdated legacy data references. | Calculates Cosine Similarity between vector embeddings of consecutive definition versions and measures reviewer override delta. | Similarity $< 0.92$ & override increase $> 10\%$ |
+| **2. Embedding Space Fracture (ESF)** | Legacy indices read by updated model query vectors. | Compares deployed model geometry with index version metadata in the vector DB. | Embedding dimension mismatch / tag discrepancy |
+| **3. Rule-Model Conflict (RMC)** | Stale rules/overrides calibrated on legacy models acting on new score distributions. | Scans active rules pointing to old model tags and measures override rate at decision boundaries. | Override rate in threshold band $> 20\%$ |
+| **4. Human-Model Divergence (HMD)** | Systemic prediction failures in specific cohorts. | Cohort grouping comparison against global override rates; extracts failure patterns via NLP. | Override rate $> 20\%$ & delta from baseline $> 15\%$ |
+| **5. Ghost Feature Misalignment (GFM)** | Rules referencing stale or deleted schema attributes. | Scans AST/regex patterns of active rule expressions against historical vs. active model features. | Active rule uses inactive/renamed feature |
 
 ---
 
 ## 🛠️ Configuration & Security
 
-The API endpoints require an API Key passed via the `X-API-Key` HTTP header. 
+The API endpoints require an API Key passed via the `X-API-Key` HTTP header.
 
 ### Environment Setup
-Create a `.env` file in the root or set environment variables in your run shell:
+Create a `.env` file in the root directory (or use `.env.example` templates):
 
-#### Backend Settings (`backend/app/core/config.py`)
+#### Backend (`backend/.env`)
 ```env
 DATABASE_URL=sqlite:///./sdm.db
 API_KEY=your-secure-backend-api-key
 ```
 
-#### Frontend Settings (`frontend/.env`)
+#### Frontend (`frontend/.env`)
 ```env
 VITE_API_URL=http://localhost:8005/api/v1
 VITE_API_KEY=your-secure-backend-api-key
@@ -97,11 +105,11 @@ VITE_API_KEY=your-secure-backend-api-key
 ## 🚀 Getting Started
 
 ### Option 1: Running with Docker Compose (Recommended)
-This starts FastAPI, Vite, PostgreSQL, and a background Redis queue:
+Spin up PostgreSQL, Redis, FastAPI backend, Vite dev server, and worker containers:
 ```bash
 docker compose up --build
 ```
-* **Dashboard Portal:** `http://localhost:5173`
+* **Dashboard Interface:** `http://localhost:5173`
 * **API Documentation (Swagger):** `http://localhost:8005/docs`
 
 ### Option 2: Running Locally (Development Mode)
@@ -123,8 +131,6 @@ python3 -m uvicorn app.main:app --port 8005 --reload
 ```bash
 cd frontend
 npm install
-
-# Build or run development server
 npm run dev
 ```
 
@@ -133,10 +139,10 @@ npm run dev
 ## 🧪 Verification & Testing
 
 ### Running Python Tests
-We maintain 100% execution pass rates on the backend test suite:
+We maintain comprehensive unit and integration test coverage:
 ```bash
 cd backend
-PYTHONPATH=. pytest tests/
+PYTHONPATH=backend pytest tests/
 ```
 
 ### Running Frontend Quality Audits
@@ -154,4 +160,4 @@ To immediately visualize semantic debt:
 1. Start both servers.
 2. Go to **Ingestion Center** in the sidebar.
 3. Click **"Load Support Ticket Demo"**. This will ingest a simulated dataset with injected semantic drifts (CMD, ESF, RMC, HMD, GFM).
-4. Navigate to the **Overview**, **Findings**, and **Lineage Graph** pages to inspect computed metrics.
+4. Navigate to the **Overview**, **Findings**, and **Lineage Graph** pages to inspect computed metrics and trace semantic failures.
