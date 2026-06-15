@@ -48,5 +48,6 @@ jobs:
         DATABASE_URL: postgresql://sdm:sdm@localhost:5432/sdm_test
         REDIS_URL: redis://localhost:6379/0
         API_KEY: your-api-key-here
+        PYTHONPATH: backend
       run: |
         pytest backend/tests/
