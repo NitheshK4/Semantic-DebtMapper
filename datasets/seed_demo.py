@@ -4,13 +4,21 @@ import requests
 import os
 import sys
 import time
+from pathlib import Path
 
 BASE_URL = os.getenv("API_URL", "http://localhost:8000/api/v1")
 API_KEY = os.getenv("API_KEY", "your-api-key-here")
 
+# Resolve dataset path dynamically
+BASE_DIR = Path(__file__).resolve().parent
+if (BASE_DIR / "demo_support_tickets").exists():
+    DATA_DIR = BASE_DIR / "demo_support_tickets"
+else:
+    DATA_DIR = BASE_DIR / "datasets" / "demo_support_tickets"
+
 headers = {
     "X-API-Key": API_KEY,
-    "Content-Type": application/json
+    "Content-Type": "application/json"
 }
 
 def load_json(filepath):
@@ -61,7 +69,7 @@ def seed():
         requests.post(f"{BASE_URL}/projects/{project_id}/concepts", json=concept_payload, headers=headers)
 
     # 3. Ingest model versions
-    model_versions = load_json("datasets/demo_support_tickets/model_versions.json")
+    model_versions = load_json(DATA_DIR / "model_versions.json")
     # Clean payload
     mv_payload = []
     for mv in model_versions:
@@ -78,13 +86,13 @@ def seed():
     print(f"Ingested models: {res.json()}")
 
     # 4. Ingest label schemas
-    label_schemas = load_json("datasets/demo_support_tickets/label_schemas.json")
+    label_schemas = load_json(DATA_DIR / "label_schemas.json")
     print("Ingesting label schemas...")
     res = requests.post(f"{BASE_URL}/projects/{project_id}/ingest/label-schemas", json=label_schemas, headers=headers)
     print(f"Ingested label schemas: {res.json()}")
 
     # 5. Ingest business rules
-    rules = load_json("datasets/demo_support_tickets/rules.json")
+    rules = load_json(DATA_DIR / "rules.json")
     rules_payload = []
     for r in rules:
         rules_payload.append({
@@ -101,13 +109,13 @@ def seed():
     print(f"Ingested rules: {res.json()}")
 
     # 6. Ingest prompts
-    prompts = load_json("datasets/demo_support_tickets/prompts.json")
+    prompts = load_json(DATA_DIR / "prompts.json")
     print("Ingesting prompts...")
     res = requests.post(f"{BASE_URL}/projects/{project_id}/ingest/prompts", json=prompts, headers=headers)
     print(f"Ingested prompts: {res.json()}")
 
     # 7. Ingest inferences
-    inferences_csv = load_csv("datasets/demo_support_tickets/inference_logs.csv")
+    inferences_csv = load_csv(DATA_DIR / "inference_logs.csv")
     inferences_payload = []
     for row in inferences_csv:
         inferences_payload.append({
@@ -136,7 +144,7 @@ def seed():
     print(f"Ingested inferences: {res.json()}")
 
     # 8. Ingest overrides
-    overrides_csv = load_csv("datasets/demo_support_tickets/override_logs.csv")
+    overrides_csv = load_csv(DATA_DIR / "override_logs.csv")
     overrides_payload = []
     for row in overrides_csv:
         overrides_payload.append({
