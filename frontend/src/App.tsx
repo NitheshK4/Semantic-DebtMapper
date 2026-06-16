@@ -6,6 +6,7 @@ import { LineageGraph } from "./pages/LineageGraph";
 import { ActionCenter } from "./pages/ActionCenter";
 import { IngestionCenter } from "./pages/IngestionCenter";
 import { Reports } from "./pages/Reports";
+import { PromptSandbox } from "./pages/PromptSandbox";
 import {
   BarChart3,
   ShieldAlert,
@@ -14,6 +15,7 @@ import {
   Database,
   FileText,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
 function App() {
@@ -98,6 +100,7 @@ function App() {
     { id: "findings", label: "Findings Explorer", icon: ShieldAlert },
     { id: "lineage", label: "Lineage Graph", icon: Layers },
     { id: "actions", label: "Action Center", icon: CheckSquare },
+    { id: "sandbox", label: "Prompt Sandbox", icon: Sparkles },
     { id: "ingestion", label: "Ingestion Center", icon: Database },
     { id: "reports", label: "Audit Reports", icon: FileText },
   ];
@@ -188,6 +191,9 @@ function App() {
             actions={actions}
             onUpdateStatus={handleUpdateActionStatus}
           />
+        )}
+        {currentPage === "sandbox" && project && (
+          <PromptSandbox projectId={project.id} />
         )}
         {currentPage === "ingestion" && project && (
           <IngestionCenter
