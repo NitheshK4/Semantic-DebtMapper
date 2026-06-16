@@ -103,25 +103,32 @@ function App() {
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen relative bg-[#030408] overflow-hidden">
+      {/* Animated Vibe-Coded background blobs */}
+      <div className="bg-glow-blobs">
+        <div className="glow-blob blob-1"></div>
+        <div className="glow-blob blob-2"></div>
+        <div className="glow-blob blob-3"></div>
+      </div>
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 glass-panel border-r border-white/5 flex flex-col justify-between p-6 shrink-0 z-10">
+      <aside className="w-64 glass-panel border-r border-white/5 flex flex-col justify-between p-6 shrink-0 z-10 relative">
         <div className="space-y-8">
           {/* Minimalist App Header */}
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse"></span>
               <span className="font-bold text-white text-sm tracking-wider uppercase">
                 Debt Mapper
               </span>
             </div>
-            <span className="text-[9px] text-gray-500 font-bold tracking-widest uppercase pl-3.5">
+            <span className="text-[9px] text-indigo-400/80 font-bold tracking-widest uppercase pl-3.5">
               AI Semantics Engine
             </span>
           </div>
 
           {/* Nav Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
@@ -129,10 +136,10 @@ function App() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentPage(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-150 ${
+                  className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 border ${
                     isActive
-                      ? "bg-indigo-600/10 border border-indigo-500/20 text-indigo-400"
-                      : "border border-transparent text-gray-400 hover:bg-white/[0.02] hover:text-white"
+                      ? "bg-indigo-600/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.06)]"
+                      : "border-transparent text-gray-400 hover:bg-white/[0.02] hover:text-white"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -163,7 +170,7 @@ function App() {
       </aside>
 
       {/* Main Panel Content Area */}
-      <main className="flex-1 p-8 overflow-y-auto max-h-screen">
+      <main className="flex-1 p-8 overflow-y-auto max-h-screen z-10 relative">
         {/* Render Active View */}
         {currentPage === "overview" && (
           <Overview
