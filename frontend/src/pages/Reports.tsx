@@ -163,10 +163,10 @@ export const Reports: React.FC<ReportsProps> = ({ projectId }) => {
               if (line.startsWith("|")) {
                 // Table line, skip header boundaries for preview, render simple layout or table format
                 if (line.includes("---")) return null;
-                const cols = line
-                  .split("|")
-                  .map((c) => c.trim())
-                  .filter((c) => c !== "");
+                const parts = line.split("|");
+                const cols = parts
+                  .slice(1, parts.length - 1)
+                  .map((c) => c.trim());
                 const isHeader =
                   idx === 11 || line.toLowerCase().includes("detector"); // Rough check for header
                 return (
