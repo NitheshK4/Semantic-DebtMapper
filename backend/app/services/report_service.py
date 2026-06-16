@@ -1,3 +1,4 @@
+import html
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -235,19 +236,37 @@ The following action items are ranked by estimated semantic debt reduction and b
             leading=13,
         )
 
+        # Define table cell styles
+        table_cell_style = ParagraphStyle(
+            "TableCell",
+            parent=styles["Normal"],
+            fontName="Helvetica",
+            fontSize=9,
+            textColor=colors.HexColor("#2D3748"),
+            leading=12,
+        )
+        table_header_style = ParagraphStyle(
+            "TableHeader",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            textColor=colors.white,
+            leading=12,
+        )
+
         # Header
-        story.append(Paragraph(f"Weekly Meaning Audit: {proj_name}", title_style))
+        story.append(Paragraph(f"Weekly Meaning Audit: {html.escape(proj_name)}", title_style))
         story.append(
             Paragraph(
-                f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Project Domain: {proj_domain}",
+                f"Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Project Domain: {html.escape(proj_domain)}",
                 body_style,
             )
         )
         story.append(Spacer(1, 10))
 
         # Executive Summary Box
-        summary_text = f"<b>Semantic Debt Score:</b> {sds}/100 ({band})<br/>"
-        summary_text += f"<b>Detector Run ID:</b> {run_id}<br/>"
+        summary_text = f"<b>Semantic Debt Score:</b> {sds}/100 ({html.escape(band)})<br/>"
+        summary_text += f"<b>Detector Run ID:</b> {html.escape(run_id)}<br/>"
         summary_text += f"<b>Total Findings:</b> {len(findings)} | <b>Open Actions:</b> {len([c for c in cards if c.status == 'open'])}"
 
         summary_p = Paragraph(
@@ -272,24 +291,31 @@ The following action items are ranked by estimated semantic debt reduction and b
         # Findings Section
         story.append(Paragraph("Semantic Debt Findings", h2_style))
 
-        table_data = [["Detector", "Severity", "Target", "Recommended Action"]]
+        table_data = [
+            [
+                Paragraph("Detector", table_header_style),
+                Paragraph("Severity", table_header_style),
+                Paragraph("Target", table_header_style),
+                Paragraph("Recommended Action", table_header_style),
+            ]
+        ]
         for f in findings:
             table_data.append(
                 [
-                    f.detector,
-                    f.severity.upper(),
-                    f.target or "Global",
-                    f.payload.get("recommendation", "Review required"),
+                    Paragraph(html.escape(f.detector), table_cell_style),
+                    Paragraph(html.escape(f.severity.upper()), table_cell_style),
+                    Paragraph(html.escape(f.target or "Global"), table_cell_style),
+                    Paragraph(html.escape(f.payload.get("recommendation", "Review required")), table_cell_style),
                 ]
             )
 
         if len(findings) == 0:
             table_data.append(
                 [
-                    "None",
-                    "N/A",
-                    "N/A",
-                    "No semantic debt findings reported in this run.",
+                    Paragraph("None", table_cell_style),
+                    Paragraph("N/A", table_cell_style),
+                    Paragraph("N/A", table_cell_style),
+                    Paragraph("No semantic debt findings reported in this run.", table_cell_style),
                 ]
             )
 
@@ -316,19 +342,22 @@ The following action items are ranked by estimated semantic debt reduction and b
         story.append(Paragraph("Remediation Roadmap", h2_style))
 
         for i, card in enumerate(cards, 1):
+            title_escaped = html.escape(card.title)
+            status_escaped = html.escape(card.status.upper())
+            type_escaped = html.escape(card.action_type)
             story.append(
-                Paragraph(f"<b>{i}. {card.title}</b> ({card.status.upper()})", h3_style)
+                Paragraph(f"<b>{i}. {title_escaped}</b> ({status_escaped})", h3_style)
             )
             story.append(
                 Paragraph(
-                    f"Action Type: <i>{card.action_type}</i> | Priority Score: {card.priority}",
+                    f"Action Type: <i>{type_escaped}</i> | Priority Score: {card.priority}",
                     body_style,
                 )
             )
 
             steps_bullets = ""
             for step in card.steps:
-                steps_bullets += f"• {step}<br/>"
+                steps_bullets += f"• {html.escape(step)}<br/>"
             story.append(
                 Paragraph(
                     steps_bullets,
