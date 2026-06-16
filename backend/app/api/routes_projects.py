@@ -102,9 +102,12 @@ def seed_project_data(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Paths to datasets — resolve from project root, not cwd
-    _project_root = Path(__file__).resolve().parent.parent.parent.parent
-    data_dir = str(_project_root / "datasets" / "demo_support_tickets")
+    # Paths to datasets — resolve dynamically for both standard local dev and Docker context
+    _app_root = Path(__file__).resolve().parent.parent.parent
+    data_dir = _app_root / "datasets" / "demo_support_tickets"
+    if not data_dir.exists():
+        data_dir = _app_root.parent / "datasets" / "demo_support_tickets"
+    data_dir = str(data_dir)
 
     # 1. Seed Concepts
     concepts = [

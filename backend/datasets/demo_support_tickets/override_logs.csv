@@ -1,0 +1,19 @@
+override_id,inference_id,reviewer_id,original_decision,override_decision,override_class,reason_code,comment,timestamp
+ovr_001,inf_001,rev_22,medium,urgent,urgent,policy_exception,Meets new SLA policy - 4h window,2026-06-10T08:05:00Z
+ovr_002,inf_002,rev_22,medium,urgent,urgent,policy_exception,New urgent definition includes 2h+ tickets for mobile,2026-06-10T08:20:00Z
+ovr_003,inf_004,rev_15,medium,urgent,urgent,policy_exception,SLA policy v3 - 4h threshold applies,2026-06-10T09:05:00Z
+ovr_004,inf_007,rev_22,medium,urgent,urgent,policy_exception,EU mobile segment - escalate per new policy,2026-06-10T10:05:00Z
+ovr_005,inf_008,rev_22,medium,urgent,urgent,policy_exception,Meets new SLA policy - 4h window,2026-06-10T10:20:00Z
+ovr_006,inf_012,rev_15,medium,urgent,urgent,policy_exception,Payment failure mentioned - urgent under v3,2026-06-10T11:35:00Z
+ovr_007,inf_014,rev_22,medium,urgent,urgent,policy_exception,EU mobile - new SLA definition,2026-06-10T12:20:00Z
+ovr_008,inf_016,rev_22,medium,urgent,urgent,policy_exception,Meets new SLA policy - 4h window,2026-06-10T13:05:00Z
+ovr_009,inf_017,rev_15,medium,urgent,urgent,policy_exception,VIP customer - urgent under new policy,2026-06-10T13:20:00Z
+ovr_010,inf_018,rev_22,medium,urgent,urgent,policy_exception,EU mobile segment override,2026-06-10T13:35:00Z
+ovr_011,inf_021,rev_22,medium,urgent,urgent,policy_exception,New SLA definition not reflected in model,2026-06-11T08:05:00Z
+ovr_012,inf_022,rev_15,medium,urgent,urgent,policy_exception,4h SLA window applies,2026-06-11T08:35:00Z
+ovr_013,inf_023,rev_22,medium,urgent,urgent,policy_exception,EU mobile - escalate per policy v3,2026-06-11T09:05:00Z
+ovr_014,inf_025,rev_22,medium,urgent,urgent,policy_exception,Meets new urgent criteria,2026-06-11T10:05:00Z
+ovr_015,inf_026,rev_15,medium,urgent,urgent,policy_exception,Mobile channel - new SLA rules,2026-06-11T10:35:00Z
+ovr_016,inf_027,rev_22,medium,urgent,urgent,policy_exception,EU segment override - policy v3,2026-06-11T11:05:00Z
+ovr_017,inf_029,rev_22,medium,urgent,urgent,policy_exception,New SLA definition not reflected,2026-06-11T12:05:00Z
+ovr_018,inf_030,rev_15,medium,urgent,urgent,policy_exception,4h window - should be urgent,2026-06-11T12:35:00Z
