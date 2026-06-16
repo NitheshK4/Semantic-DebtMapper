@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.api import (routes_audits, routes_ingest, routes_projects,
                      routes_reports)
+from app.sandbox import routes_sandbox
 from app.core.db import engine
 from app.models.db_models import Base
 
@@ -49,6 +50,7 @@ app.include_router(routes_projects.router, prefix=api_prefix)
 app.include_router(routes_ingest.router, prefix=api_prefix)
 app.include_router(routes_audits.router, prefix=api_prefix)
 app.include_router(routes_reports.router, prefix=api_prefix)
+app.include_router(routes_sandbox.router, prefix=api_prefix)
 
 
 @app.get("/health", tags=["Health"])

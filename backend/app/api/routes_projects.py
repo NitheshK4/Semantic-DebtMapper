@@ -111,26 +111,38 @@ def seed_project_data(
 
     # 1. Seed Concepts
     concepts = [
-        {"key": "low", "def": "Ticket can be addressed within 48 hours per SLA."},
-        {"key": "medium", "def": "Ticket should be addressed within 24 hours per SLA."},
-        {
-            "key": "urgent",
-            "def": "Ticket requires response within 4 hours per SLA policy v3. Includes VIP escalations and payment failures.",
-        },
-        {
-            "key": "critical",
-            "def": "System outage or security incident requiring response within 30 minutes.",
-        },
+        {"key": "low", "def": "Ticket can be addressed within 48 hours per SLA.", "version": "v1", "date": "2026-01-01T00:00:00Z"},
+        {"key": "medium", "def": "Ticket should be addressed within 24 hours per SLA.", "version": "v1", "date": "2026-01-01T00:00:00Z"},
+        {"key": "critical", "def": "System outage or security incident requiring response within 30 minutes.", "version": "v1", "date": "2026-01-01T00:00:00Z"},
     ]
     for c in concepts:
         ConceptRegistry.create_concept(
             db=db,
             project_id=project_id,
             concept_key=c["key"],
-            version="v1",
+            version=c["version"],
             definition=c["def"],
-            effective_from=datetime.fromisoformat("2026-01-01T00:00:00Z"),
+            effective_from=datetime.fromisoformat(c["date"]),
         )
+
+    # Seed urgent v1 (historical)
+    ConceptRegistry.create_concept(
+        db=db,
+        project_id=project_id,
+        concept_key="urgent",
+        version="v1",
+        definition="Ticket requires response within two hours per SLA policy v2. Includes VIP escalations.",
+        effective_from=datetime.fromisoformat("2026-01-01T00:00:00Z"),
+    )
+    # Seed urgent v2 (active)
+    ConceptRegistry.create_concept(
+        db=db,
+        project_id=project_id,
+        concept_key="urgent",
+        version="v2",
+        definition="Ticket requires response within four hours per SLA policy v3. Includes VIP escalations and payment failures.",
+        effective_from=datetime.fromisoformat("2026-03-01T00:00:00Z"),
+    )
 
     # 2. Ingest Model Versions
     with open(f"{data_dir}/model_versions.json", "r") as f:

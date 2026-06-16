@@ -53,20 +53,42 @@ def seed():
 
     # 2. Ingest concepts
     concepts = [
-        {"key": "low", "def": "Ticket can be addressed within 48 hours per SLA."},
-        {"key": "medium", "def": "Ticket should be addressed within 24 hours per SLA."},
-        {"key": "urgent", "def": "Ticket requires response within 4 hours per SLA policy v3. Includes VIP escalations and payment failures."},
-        {"key": "critical", "def": "System outage or security incident requiring response within 30 minutes."}
+        {"key": "low", "def": "Ticket can be addressed within 48 hours per SLA.", "version": "v1", "date": "2026-01-01T00:00:00Z"},
+        {"key": "medium", "def": "Ticket should be addressed within 24 hours per SLA.", "version": "v1", "date": "2026-01-01T00:00:00Z"},
+        {"key": "critical", "def": "System outage or security incident requiring response within 30 minutes.", "version": "v1", "date": "2026-01-01T00:00:00Z"}
     ]
     for c in concepts:
         concept_payload = {
             "concept_key": c["key"],
-            "version": "v1",
+            "version": c["version"],
             "definition": c["def"],
-            "effective_from": "2026-01-01T00:00:00Z"
+            "effective_from": c["date"]
         }
         print(f"Creating concept: {c['key']}...")
         requests.post(f"{BASE_URL}/projects/{project_id}/concepts", json=concept_payload, headers=headers)
+
+    # Ingest urgent v1 (historical)
+    requests.post(
+        f"{BASE_URL}/projects/{project_id}/concepts",
+        json={
+            "concept_key": "urgent",
+            "version": "v1",
+            "definition": "Ticket requires response within two hours per SLA policy v2. Includes VIP escalations.",
+            "effective_from": "2026-01-01T00:00:00Z"
+        },
+        headers=headers
+    )
+    # Ingest urgent v2 (active)
+    requests.post(
+        f"{BASE_URL}/projects/{project_id}/concepts",
+        json={
+            "concept_key": "urgent",
+            "version": "v2",
+            "definition": "Ticket requires response within four hours per SLA policy v3. Includes VIP escalations and payment failures.",
+            "effective_from": "2026-03-01T00:00:00Z"
+        },
+        headers=headers
+    )
 
     # 3. Ingest model versions
     model_versions = load_json(DATA_DIR / "model_versions.json")
