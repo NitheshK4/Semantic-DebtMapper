@@ -250,4 +250,35 @@ export const api = {
     });
     return res.json();
   },
+
+  evaluatePrompt: async (
+    projectId: string,
+    template: string,
+    inputs: Record<string, string>,
+    mockModel: string,
+  ): Promise<{
+    rendered_prompt: string;
+    mock_response: string;
+    warnings: {
+      concept: string;
+      type: string;
+      severity: string;
+      message: string;
+      recommendation: string;
+    }[];
+  }> => {
+    const res = await fetch(
+      `${API_URL}/projects/${projectId}/sandbox/evaluate`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          template,
+          inputs,
+          mock_model: mockModel,
+        }),
+      },
+    );
+    return res.json();
+  },
 };
