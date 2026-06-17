@@ -116,17 +116,14 @@ class CMDDetector(BaseDetector):
                     if inf_count == 0:
                         return 0.0
 
-                    # Overridden from or to class_id
+                    # Overridden from class_id
                     override_count = (
                         db.query(OverrideLog)
                         .filter(
                             OverrideLog.project_id == ctx.project_id,
                             OverrideLog.ts >= start,
                             OverrideLog.ts < end,
-                            (
-                                (OverrideLog.override_class == class_id)
-                                | (OverrideLog.original_decision == class_id)
-                            ),
+                            OverrideLog.original_decision == class_id,
                         )
                         .count()
                     )
