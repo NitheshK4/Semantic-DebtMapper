@@ -106,13 +106,13 @@ class GFMDetector(BaseDetector):
                 .first()
             )
 
-            if not prev_sample_log or not prev_sample_log.input_features:
+            if not prev_sample_log or not isinstance(getattr(prev_sample_log, "input_features", None), dict):
                 continue
 
             prev_features = set(prev_sample_log.input_features.keys())
             curr_features = (
                 set(curr_sample_log.input_features.keys())
-                if curr_sample_log and curr_sample_log.input_features
+                if curr_sample_log and isinstance(getattr(curr_sample_log, "input_features", None), dict)
                 else set()
             )
 
