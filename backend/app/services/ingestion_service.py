@@ -35,27 +35,57 @@ class IngestionService:
             Number of successfully processed model versions.
         """
         count = 0
+        is_postgres = db.bind.dialect.name == "postgresql"
         for event in events:
-            # PostgreSQL upsert (ON CONFLICT DO UPDATE)
-            stmt = insert(ModelVersion).values(
-                project_id=project_id,
-                endpoint_id=event.endpoint_id,
-                model_name=event.model_name,
-                model_version=event.model_version,
-                feature_schema_version=event.feature_schema_version,
-                deployed_at=event.deployed_at,
-                model_metadata=event.metadata,
-            )
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["project_id", "endpoint_id", "model_version"],
-                set_={
-                    "model_name": stmt.excluded.model_name,
-                    "feature_schema_version": stmt.excluded.feature_schema_version,
-                    "deployed_at": stmt.excluded.deployed_at,
-                    "metadata": stmt.excluded.metadata,
-                },
-            )
-            db.execute(stmt)
+            if is_postgres:
+                # PostgreSQL upsert (ON CONFLICT DO UPDATE)
+                stmt = insert(ModelVersion).values(
+                    project_id=project_id,
+                    endpoint_id=event.endpoint_id,
+                    model_name=event.model_name,
+                    model_version=event.model_version,
+                    feature_schema_version=event.feature_schema_version,
+                    deployed_at=event.deployed_at,
+                    model_metadata=event.metadata,
+                )
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["project_id", "endpoint_id", "model_version"],
+                    set_={
+                        "model_name": stmt.excluded.model_name,
+                        "feature_schema_version": stmt.excluded.feature_schema_version,
+                        "deployed_at": stmt.excluded.deployed_at,
+                        "metadata": stmt.excluded.metadata,
+                    },
+                )
+                db.execute(stmt)
+            else:
+                # SQLite/other fallback: query-then-update
+                existing = (
+                    db.query(ModelVersion)
+                    .filter(
+                        ModelVersion.project_id == project_id,
+                        ModelVersion.endpoint_id == event.endpoint_id,
+                        ModelVersion.model_version == event.model_version,
+                    )
+                    .first()
+                )
+                if existing:
+                    existing.model_name = event.model_name
+                    existing.feature_schema_version = event.feature_schema_version
+                    existing.deployed_at = event.deployed_at
+                    existing.model_metadata = event.metadata
+                else:
+                    db.add(
+                        ModelVersion(
+                            project_id=project_id,
+                            endpoint_id=event.endpoint_id,
+                            model_name=event.model_name,
+                            model_version=event.model_version,
+                            feature_schema_version=event.feature_schema_version,
+                            deployed_at=event.deployed_at,
+                            model_metadata=event.metadata,
+                        )
+                    )
             count += 1
         db.commit()
         return count
@@ -228,35 +258,70 @@ class IngestionService:
             Number of successfully processed inference logs.
         """
         count = 0
+        is_postgres = db.bind.dialect.name == "postgresql"
         for inf in inferences:
-            # We can use ON CONFLICT DO UPDATE for inference logs based on inference_id
-            stmt = insert(InferenceLog).values(
-                project_id=project_id,
-                inference_id=inf.inference_id,
-                endpoint_id=inf.endpoint_id,
-                model_version=inf.model_version,
-                ts=inf.timestamp,
-                input_features=inf.input_features,
-                model_output={
-                    **(inf.model_output or {}),
-                    "rule_applied": inf.rule_applied,
-                },
-                final_decision=inf.final_decision,
-                segment=inf.segment,
-            )
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["project_id", "inference_id"],
-                set_={
-                    "endpoint_id": stmt.excluded.endpoint_id,
-                    "model_version": stmt.excluded.model_version,
-                    "ts": stmt.excluded.ts,
-                    "input_features": stmt.excluded.input_features,
-                    "model_output": stmt.excluded.model_output,
-                    "final_decision": stmt.excluded.final_decision,
-                    "segment": stmt.excluded.segment,
-                },
-            )
-            db.execute(stmt)
+            model_output_val = {
+                **(inf.model_output or {}),
+                "rule_applied": inf.rule_applied,
+            }
+            if is_postgres:
+                # We can use ON CONFLICT DO UPDATE for inference logs based on inference_id
+                stmt = insert(InferenceLog).values(
+                    project_id=project_id,
+                    inference_id=inf.inference_id,
+                    endpoint_id=inf.endpoint_id,
+                    model_version=inf.model_version,
+                    ts=inf.timestamp,
+                    input_features=inf.input_features,
+                    model_output=model_output_val,
+                    final_decision=inf.final_decision,
+                    segment=inf.segment,
+                )
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["project_id", "inference_id"],
+                    set_={
+                        "endpoint_id": stmt.excluded.endpoint_id,
+                        "model_version": stmt.excluded.model_version,
+                        "ts": stmt.excluded.ts,
+                        "input_features": stmt.excluded.input_features,
+                        "model_output": stmt.excluded.model_output,
+                        "final_decision": stmt.excluded.final_decision,
+                        "segment": stmt.excluded.segment,
+                    },
+                )
+                db.execute(stmt)
+            else:
+                # SQLite/other fallback: query-then-update
+                existing = (
+                    db.query(InferenceLog)
+                    .filter(
+                        InferenceLog.project_id == project_id,
+                        InferenceLog.inference_id == inf.inference_id,
+                    )
+                    .first()
+                )
+                if existing:
+                    existing.endpoint_id = inf.endpoint_id
+                    existing.model_version = inf.model_version
+                    existing.ts = inf.timestamp
+                    existing.input_features = inf.input_features
+                    existing.model_output = model_output_val
+                    existing.final_decision = inf.final_decision
+                    existing.segment = inf.segment
+                else:
+                    db.add(
+                        InferenceLog(
+                            project_id=project_id,
+                            inference_id=inf.inference_id,
+                            endpoint_id=inf.endpoint_id,
+                            model_version=inf.model_version,
+                            ts=inf.timestamp,
+                            input_features=inf.input_features,
+                            model_output=model_output_val,
+                            final_decision=inf.final_decision,
+                            segment=inf.segment,
+                        )
+                    )
             count += 1
         db.commit()
         return count
