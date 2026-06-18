@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,15 +15,8 @@ from app.models.db_models import Base
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="Semantic Debt Mapper (SDM)",
-    description="Production AI reliability tool to map and detect semantic debt in ML/LLM pipelines",
-    version="1.0.0",
-)
-
-
-@app.on_event("startup")
-def initialize_database():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     try:
         logger.info("Initializing database and enabling vector extension...")
         with engine.connect() as conn:
@@ -33,6 +27,15 @@ def initialize_database():
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.error(f"Error during database initialization: {e}", exc_info=True)
+    yield
+
+
+app = FastAPI(
+    title="Semantic Debt Mapper (SDM)",
+    description="Production AI reliability tool to map and detect semantic debt in ML/LLM pipelines",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 
 # CORS configuration
