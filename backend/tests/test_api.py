@@ -68,3 +68,10 @@ def test_ingest_invalid_project(client):
         headers=headers,
     )
     assert response.status_code == 404
+
+
+def test_health_check(client):
+    """Test that the health check endpoint returns 200 and healthy status."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
