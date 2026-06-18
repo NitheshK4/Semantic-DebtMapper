@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # Projects
@@ -17,8 +17,7 @@ class ProjectOut(BaseModel):
     domain: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Ingestion Schemas
@@ -105,8 +104,7 @@ class ConceptVersionOut(BaseModel):
     effective_to: Optional[datetime]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ConceptOut(BaseModel):
@@ -115,8 +113,7 @@ class ConceptOut(BaseModel):
     created_at: datetime
     versions: List[ConceptVersionOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Audits and Runs
@@ -135,8 +132,7 @@ class FindingOut(BaseModel):
     payload: Dict[str, Any]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ActionCardOut(BaseModel):
@@ -147,8 +143,7 @@ class ActionCardOut(BaseModel):
     steps: List[str]
     status: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ActionCardUpdate(BaseModel):
@@ -166,5 +161,4 @@ class DetectorRunOut(BaseModel):
     findings: List[FindingOut] = []
     action_cards: List[ActionCardOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
