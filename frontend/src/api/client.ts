@@ -5,10 +5,26 @@ if (!API_KEY) {
   console.error("VITE_API_KEY is not set in the environment.");
 }
 
-const headers = {
+const baseHeaders: Record<string, string> = {
   "Content-Type": "application/json",
   "X-API-Key": API_KEY,
 };
+
+let authToken: string | null = localStorage.getItem("sdm_token");
+
+const getHeaders = () => {
+  const headers = { ...baseHeaders };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+  return headers;
+};
+
+export interface User {
+  id: string;
+  email: string;
+  role: string;
+}
 
 export interface Project {
   id: string;
@@ -85,35 +101,61 @@ export interface GraphData {
 }
 
 export const api = {
+  setToken: (token: string | null) => {
+    authToken = token;
+  },
+
+  login: async (email: string, password: string): Promise<{ access_token: string }> => {
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
+    const res = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-API-Key": API_KEY,
+      },
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Login failed");
+    return res.json();
+  },
+
+  getCurrentUser: async (): Promise<User> => {
+    const res = await fetch(`${API_URL}/users/me`, { headers: getHeaders() });
+    if (!res.ok) throw new Error("Failed to fetch user");
+    return res.json();
+  },
+
   getProjects: async (): Promise<Project[]> => {
-    const res = await fetch(`${API_URL}/projects`, { headers });
+    const res = await fetch(`${API_URL}/projects`, { headers: getHeaders() });
     return res.json();
   },
 
   createProject: async (name: string, domain: string): Promise<Project> => {
     const res = await fetch(`${API_URL}/projects`, {
       method: "POST",
-      headers,
+      headers: getHeaders(),
       body: JSON.stringify({ name, domain }),
     });
     return res.json();
   },
 
   getProject: async (id: string): Promise<Project> => {
-    const res = await fetch(`${API_URL}/projects/${id}`, { headers });
+    const res = await fetch(`${API_URL}/projects/${id}`, { headers: getHeaders() });
     return res.json();
   },
 
   deleteProject: async (id: string): Promise<void> => {
     await fetch(`${API_URL}/projects/${id}`, {
       method: "DELETE",
-      headers,
+      headers: getHeaders(),
     });
   },
 
   getConcepts: async (projectId: string): Promise<Concept[]> => {
     const res = await fetch(`${API_URL}/projects/${projectId}/concepts`, {
-      headers,
+      headers: getHeaders(),
     });
     return res.json();
   },
@@ -129,7 +171,7 @@ export const api = {
   ): Promise<Concept> => {
     const res = await fetch(`${API_URL}/projects/${projectId}/concepts`, {
       method: "POST",
-      headers,
+      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return res.json();
@@ -145,7 +187,7 @@ export const api = {
       `${API_URL}/projects/${projectId}/audits/run?sync=${sync}`,
       {
         method: "POST",
-        headers,
+        headers: getHeaders(),
         body: JSON.stringify({
           as_of: asOf || null,
           detectors,
@@ -157,7 +199,7 @@ export const api = {
 
   getLatestAudit: async (projectId: string): Promise<DetectorRun | null> => {
     const res = await fetch(`${API_URL}/projects/${projectId}/audits/latest`, {
-      headers,
+      headers: getHeaders(),
     });
     if (res.status === 404) return null;
     const data = await res.json();
@@ -170,7 +212,7 @@ export const api = {
   ): Promise<DetectorRun> => {
     const res = await fetch(
       `${API_URL}/projects/${projectId}/audits/${runId}`,
-      { headers },
+      { headers: getHeaders() },
     );
     return res.json();
   },
@@ -182,7 +224,7 @@ export const api = {
     const url = severity
       ? `${API_URL}/projects/${projectId}/findings?severity=${severity}`
       : `${API_URL}/projects/${projectId}/findings`;
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { headers: getHeaders() });
     return res.json();
   },
 
@@ -193,7 +235,7 @@ export const api = {
     const url = status
       ? `${API_URL}/projects/${projectId}/actions?status=${status}`
       : `${API_URL}/projects/${projectId}/actions`;
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { headers: getHeaders() });
     return res.json();
   },
 
@@ -206,7 +248,7 @@ export const api = {
       `${API_URL}/projects/${projectId}/actions/${actionId}`,
       {
         method: "PATCH",
-        headers,
+        headers: getHeaders(),
         body: JSON.stringify({ status }),
       },
     );
@@ -215,7 +257,7 @@ export const api = {
 
   getLatestLineage: async (projectId: string): Promise<GraphData> => {
     const res = await fetch(`${API_URL}/projects/${projectId}/lineage/latest`, {
-      headers,
+      headers: getHeaders(),
     });
     if (!res.ok) throw new Error("Lineage not found");
     return res.json();
@@ -223,7 +265,7 @@ export const api = {
 
   getWeeklyReportMarkdown: async (projectId: string): Promise<string> => {
     const res = await fetch(`${API_URL}/projects/${projectId}/reports/weekly`, {
-      headers,
+      headers: getHeaders(),
     });
     return res.text();
   },
@@ -231,7 +273,7 @@ export const api = {
   getWeeklyReportPdfUrl: async (projectId: string): Promise<string> => {
     const res = await fetch(
       `${API_URL}/projects/${projectId}/reports/weekly.pdf`,
-      { headers },
+      { headers: getHeaders() },
     );
     if (!res.ok) throw new Error("Failed to fetch PDF report");
     const blob = await res.blob();
@@ -245,7 +287,7 @@ export const api = {
   ): Promise<Record<string, unknown>> => {
     const res = await fetch(`${API_URL}/projects/${projectId}/ingest/${type}`, {
       method: "POST",
-      headers,
+      headers: getHeaders(),
       body: JSON.stringify(payload),
     });
     return res.json();
@@ -271,7 +313,7 @@ export const api = {
       `${API_URL}/projects/${projectId}/sandbox/evaluate`,
       {
         method: "POST",
-        headers,
+        headers: getHeaders(),
         body: JSON.stringify({
           template,
           inputs,
