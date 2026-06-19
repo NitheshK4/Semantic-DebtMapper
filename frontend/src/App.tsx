@@ -7,6 +7,9 @@ import { ActionCenter } from "./pages/ActionCenter";
 import { IngestionCenter } from "./pages/IngestionCenter";
 import { Reports } from "./pages/Reports";
 import { PromptSandbox } from "./pages/PromptSandbox";
+import { Login } from "./pages/Login";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
   ShieldAlert,
@@ -18,7 +21,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-function App() {
+function AppContent() {
+  const { user, token, logout, isLoading: authLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>("overview");
   const [project, setProject] = useState<Project | null>(null);
   const [latestRun, setLatestRun] = useState<DetectorRun | null>(null);
@@ -69,8 +73,13 @@ function App() {
         setInitializing(false);
       }
     };
-    initialize();
-  }, []);
+    
+    if (token) {
+      initialize();
+    } else {
+      setInitializing(false);
+    }
+  }, [token]);
 
   const handleUpdateActionStatus = async (actionId: string, status: string) => {
     if (!project) return;
@@ -93,6 +102,10 @@ function App() {
         </p>
       </div>
     );
+  }
+
+  if (!token) {
+    return <Login />;
   }
 
   const navItems = [
@@ -170,42 +183,69 @@ function App() {
             </div>
           </div>
         )}
+        
+        <div className="mt-4 pt-4 border-t border-white/5">
+           <button 
+             onClick={logout}
+             className="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 border border-transparent text-gray-400 hover:bg-white/[0.02] hover:text-white"
+           >
+             <span>Logout</span>
+           </button>
+        </div>
       </aside>
 
       {/* Main Panel Content Area */}
       <main className="flex-1 p-8 overflow-y-auto max-h-screen z-10 relative">
-        {/* Render Active View */}
-        {currentPage === "overview" && (
-          <Overview
-            run={latestRun}
-            findings={findings}
-            onNavigate={(page) => setCurrentPage(page)}
-          />
-        )}
-        {currentPage === "findings" && <FindingsExplorer findings={findings} />}
-        {currentPage === "lineage" && project && (
-          <LineageGraph projectId={project.id} />
-        )}
-        {currentPage === "actions" && (
-          <ActionCenter
-            actions={actions}
-            onUpdateStatus={handleUpdateActionStatus}
-          />
-        )}
-        {currentPage === "sandbox" && project && (
-          <PromptSandbox projectId={project.id} />
-        )}
-        {currentPage === "ingestion" && project && (
-          <IngestionCenter
-            projectId={project.id}
-            onAuditComplete={() => loadRunData(project.id)}
-          />
-        )}
-        {currentPage === "reports" && project && (
-          <Reports projectId={project.id} />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            {currentPage === "overview" && (
+              <Overview
+                run={latestRun}
+                findings={findings}
+                onNavigate={(page) => setCurrentPage(page)}
+              />
+            )}
+            {currentPage === "findings" && <FindingsExplorer findings={findings} />}
+            {currentPage === "lineage" && project && (
+              <LineageGraph projectId={project.id} />
+            )}
+            {currentPage === "actions" && (
+              <ActionCenter
+                actions={actions}
+                onUpdateStatus={handleUpdateActionStatus}
+              />
+            )}
+            {currentPage === "sandbox" && project && (
+              <PromptSandbox projectId={project.id} />
+            )}
+            {currentPage === "ingestion" && project && (
+              <IngestionCenter
+                projectId={project.id}
+                onAuditComplete={() => loadRunData(project.id)}
+              />
+            )}
+            {currentPage === "reports" && project && (
+              <Reports projectId={project.id} />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

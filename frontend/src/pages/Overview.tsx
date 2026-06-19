@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { DetectorRun, Finding } from "../api/client";
+import { motion } from "framer-motion";
 
 interface OverviewProps {
   run: DetectorRun | null;
@@ -322,8 +323,11 @@ export const Overview: React.FC<OverviewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.03] text-xs">
-              {findings.slice(0, 5).map((f) => (
-                <tr
+              {findings.slice(0, 5).map((f, i) => (
+                <motion.tr
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
                   key={f.id}
                   className="group hover:bg-white/[0.01] transition-colors"
                 >
@@ -352,7 +356,7 @@ export const Overview: React.FC<OverviewProps> = ({
                     {(f.payload?.recommendation as string) ||
                       "Needs evaluation"}
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {findings.length === 0 && (
                 <tr>
