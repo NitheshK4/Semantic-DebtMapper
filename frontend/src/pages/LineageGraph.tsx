@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import dagre from "dagre";
 import ReactFlow, {
   Background,
   Controls,
@@ -41,58 +42,33 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({ projectId }) => {
   useEffect(() => {
     if (!graphData) return;
 
-    // Structure coordinates in vertical columns (X) based on node types
-    const colWidths: Record<string, number> = {
-      concept: 50,
-      label_class: 250,
-      model_version: 450,
-      rule: 650,
-      prompt_version: 650,
-      feature: 850,
-      segment: 1050,
-    };
-
-    // Calculate Y coordinates per type to stack them vertically
-    const yOffsets: Record<string, number> = {};
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+    dagreGraph.setGraph({ rankdir: "LR", ranksep: 100, nodesep: 40 });
 
     const rfNodes = graphData.nodes.map((node) => {
       const type = node.type;
-      const x = colWidths[type] || 500;
-
-      if (yOffsets[type] === undefined) {
-        yOffsets[type] = 50;
-      } else {
-        yOffsets[type] += 90;
-      }
-      const y = yOffsets[type];
 
       // Custom node color styling matching our enterprise theme
       let bgStyle = "bg-[#0c0f18] border-white/5 text-white";
       if (type === "concept")
-        bgStyle =
-          "bg-[#0d1121] border-indigo-500/20 text-indigo-300 hover:border-indigo-400/40";
+        bgStyle = "bg-[#0d1121] border-indigo-500/20 text-indigo-300 hover:border-indigo-400/40";
       else if (type === "label_class")
-        bgStyle =
-          "bg-[#09121d] border-sky-500/20 text-sky-300 hover:border-sky-400/40";
+        bgStyle = "bg-[#09121d] border-sky-500/20 text-sky-300 hover:border-sky-400/40";
       else if (type === "model_version")
-        bgStyle =
-          "bg-[#100e21] border-purple-500/20 text-purple-300 hover:border-purple-400/40";
+        bgStyle = "bg-[#100e21] border-purple-500/20 text-purple-300 hover:border-purple-400/40";
       else if (type === "rule")
-        bgStyle =
-          "bg-[#130f0b] border-amber-500/20 text-amber-300 hover:border-amber-400/40";
+        bgStyle = "bg-[#130f0b] border-amber-500/20 text-amber-300 hover:border-amber-400/40";
       else if (type === "prompt_version")
-        bgStyle =
-          "bg-[#081315] border-teal-500/20 text-teal-300 hover:border-teal-400/40";
+        bgStyle = "bg-[#081315] border-teal-500/20 text-teal-300 hover:border-teal-400/40";
       else if (type === "feature")
-        bgStyle =
-          "bg-[#08130e] border-emerald-500/20 text-emerald-300 hover:border-emerald-400/40";
+        bgStyle = "bg-[#08130e] border-emerald-500/20 text-emerald-300 hover:border-emerald-400/40";
       else if (type === "segment")
-        bgStyle =
-          "bg-[#11131b] border-white/5 text-slate-350 hover:border-white/10";
+        bgStyle = "bg-[#11131b] border-white/5 text-slate-350 hover:border-white/10";
 
       return {
         id: node.id,
-        position: { x, y },
+        position: { x: 0, y: 0 },
         data: { label: node.label, nodeData: node },
         className: `px-3.5 py-2.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider shadow-lg cursor-pointer transition-all hover:scale-[1.03] duration-150 ${bgStyle}`,
         style: { width: 155 },
@@ -100,14 +76,11 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({ projectId }) => {
     });
 
     const rfEdges = graphData.edges.map((edge, idx) => {
-      // Color matching edge source type
       let edgeColor = "rgba(255, 255, 255, 0.08)";
       if (edge.type === "defines") edgeColor = "rgba(99, 102, 241, 0.35)";
       else if (edge.type === "predicts") edgeColor = "rgba(14, 165, 233, 0.35)";
-      else if (edge.type === "post_processes")
-        edgeColor = "rgba(245, 158, 11, 0.35)";
-      else if (edge.type === "uses_feature")
-        edgeColor = "rgba(16, 185, 129, 0.35)";
+      else if (edge.type === "post_processes") edgeColor = "rgba(245, 158, 11, 0.35)";
+      else if (edge.type === "uses_feature") edgeColor = "rgba(16, 185, 129, 0.35)";
 
       return {
         id: `e-${idx}`,
@@ -123,7 +96,26 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({ projectId }) => {
       };
     });
 
-    setNodes(rfNodes);
+    rfNodes.forEach((node) => {
+      dagreGraph.setNode(node.id, { width: 155, height: 40 });
+    });
+
+    rfEdges.forEach((edge) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const layoutedNodes = rfNodes.map((node) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+      node.position = {
+        x: nodeWithPosition.x - 155 / 2,
+        y: nodeWithPosition.y - 40 / 2,
+      };
+      return node;
+    });
+
+    setNodes(layoutedNodes);
     setEdges(rfEdges);
   }, [graphData, setNodes, setEdges]);
 
