@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-BASE_URL = os.getenv("API_URL", "http://localhost:8000/api/v1")
+BASE_URL = os.getenv("API_URL", "http://localhost:8005/api/v1")
 API_KEY = os.getenv("API_KEY", "your-api-key-here")
 
 # Resolve dataset path dynamically

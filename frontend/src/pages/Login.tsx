@@ -25,15 +25,11 @@ export const Login: React.FC = () => {
         login(res.access_token);
       } catch {
         // Fallback to register for demo purposes if user doesn't exist
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-API-Key": import.meta.env.VITE_API_KEY },
-          body: JSON.stringify({ email, password }),
-        });
-        if (res.ok) {
+        try {
+          await api.register(email, password);
           const loginRes = await api.login(email, password);
           login(loginRes.access_token);
-        } else {
+        } catch {
           setError("Failed to login or register.");
         }
       }

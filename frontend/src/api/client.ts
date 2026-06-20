@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8005/api/v1";
 const API_KEY = import.meta.env.VITE_API_KEY;
 
 if (!API_KEY) {
@@ -118,6 +118,16 @@ export const api = {
       body: formData,
     });
     if (!res.ok) throw new Error("Login failed");
+    return res.json();
+  },
+
+  register: async (email: string, password: string): Promise<User> => {
+    const res = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error("Registration failed");
     return res.json();
   },
 

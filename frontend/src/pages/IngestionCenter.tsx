@@ -42,7 +42,7 @@ export const IngestionCenter: React.FC<IngestionCenterProps> = ({
       // then the frontend can trigger it with a single click! Let's implement this endpoint!
       // Let's first make sure the frontend calls: `await fetch('/api/v1/projects/{projectId}/seed')`.
       const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+        import.meta.env.VITE_API_URL || "http://localhost:8005/api/v1";
       const res = await fetch(`${API_URL}/projects/${projectId}/seed`, {
         method: "POST",
         headers: {
