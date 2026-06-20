@@ -142,7 +142,9 @@ npm run dev
 We maintain comprehensive unit and integration test coverage:
 ```bash
 cd backend
-PYTHONPATH=backend pytest tests/
+export API_KEY=dev-key-123
+export DATABASE_URL=sqlite:///./sdm.db
+PYTHONPATH=. pytest tests/
 ```
 
 ### Running Frontend Quality Audits
