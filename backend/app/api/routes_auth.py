@@ -7,7 +7,7 @@ from app.core.db import get_db
 from app.core.security import verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash
 from app.models.user import User
 from app.api.deps import get_current_active_user
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(tags=["Authentication"])
 
@@ -20,8 +20,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserCreate(BaseModel):
     email: str
