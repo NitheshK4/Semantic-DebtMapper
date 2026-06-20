@@ -22,6 +22,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(localStorage.getItem("sdm_token"));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const logout = () => {
+    localStorage.removeItem("sdm_token");
+    api.setToken(null);
+    setToken(null);
+    setUser(null);
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       if (token) {
@@ -45,12 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(newToken);
   };
 
-  const logout = () => {
-    localStorage.removeItem("sdm_token");
-    api.setToken(null);
-    setToken(null);
-    setUser(null);
-  };
+
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
@@ -59,6 +61,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

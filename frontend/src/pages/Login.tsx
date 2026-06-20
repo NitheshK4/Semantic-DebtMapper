@@ -37,7 +37,7 @@ export const Login: React.FC = () => {
           setError("Failed to login or register.");
         }
       }
-    } catch (err) {
+    } catch {
       setError("Invalid credentials or server error");
     } finally {
       setLoading(false);

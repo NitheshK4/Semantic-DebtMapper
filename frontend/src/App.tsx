@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 function AppContent() {
-  const { user, token, logout, isLoading: authLoading } = useAuth();
+  const { token, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>("overview");
   const [project, setProject] = useState<Project | null>(null);
   const [latestRun, setLatestRun] = useState<DetectorRun | null>(null);
@@ -77,6 +77,7 @@ function AppContent() {
     if (token) {
       initialize();
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInitializing(false);
     }
   }, [token]);
