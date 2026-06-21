@@ -162,4 +162,4 @@ To immediately visualize semantic debt:
 1. Start both servers.
 2. Go to **Ingestion Center** in the sidebar.
 3. Click **"Load Support Ticket Demo"**. This will ingest a simulated dataset with injected semantic drifts (CMD, ESF, RMC, HMD, GFM).
-4. Navigate to the **Overview**, **Findings**, and **Lineage Graph** pages to inspect computed metrics and trace semantic failures.
+4. Navigate to the **Overview**, **Findings**, and **Lineage Graph** pages to inspect computed metrics and trace semantic failures
