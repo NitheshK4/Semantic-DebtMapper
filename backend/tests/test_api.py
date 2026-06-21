@@ -40,6 +40,22 @@ def test_create_concept_not_found_project(client):
     assert response.status_code == 404
 
 
+def test_create_concept_invalid_key(client):
+    """Test creating a concept with invalid characters in key fails validation."""
+    payload = {
+        "concept_key": "high PRIORITY!",
+        "version": "v1",
+        "definition": "High priority",
+        "effective_from": "2026-01-01T00:00:00Z",
+    }
+    response = client.post(
+        "/api/v1/projects/00000000-0000-0000-0000-000000000000/concepts",
+        json=payload,
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
 def test_run_audit_invalid_project(client):
     """Test running an audit on a non-existent project."""
     payload = {"detectors": ["cmd"]}

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 # Projects
@@ -94,6 +94,14 @@ class ConceptCreate(BaseModel):
     version: str
     definition: str
     effective_from: datetime
+
+    @field_validator("concept_key")
+    @classmethod
+    def validate_concept_key(cls, v: str) -> str:
+        import re
+        if not re.match(r"^[a-z0-9_-]+$", v):
+            raise ValueError("Concept key must be lowercase alphanumeric, underscores, or hyphens only")
+        return v
 
 
 class ConceptVersionOut(BaseModel):
