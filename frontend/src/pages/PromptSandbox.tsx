@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { api } from "../api/client";
+import { api, Concept } from "../api/client";
 import {
   Sparkles,
   ShieldAlert,
@@ -10,6 +10,7 @@ import {
   HelpCircle,
   Variable,
   CheckCircle,
+  BookOpen,
 } from "lucide-react";
 
 interface PromptSandboxProps {
@@ -91,6 +92,73 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
   const [renderedPrompt, setRenderedPrompt] = useState<string>("");
   const [mockResponse, setMockResponse] = useState<string>("");
   const [warnings, setWarnings] = useState<Warning[]>([]);
+
+  const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [loadingConcepts, setLoadingConcepts] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchConcepts = async () => {
+      setLoadingConcepts(true);
+      try {
+        const data = await api.getConcepts(projectId);
+        setConcepts(data);
+      } catch (err) {
+        console.error("Failed to fetch concepts:", err);
+      } finally {
+        setLoadingConcepts(false);
+      }
+    };
+    fetchConcepts();
+  }, [projectId]);
+
+  const insertConcept = (key: string) => {
+    const textarea = document.getElementById("prompt-textarea") as HTMLTextAreaElement;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    const insertion = `{{${key}}}`;
+    setTemplate(before + insertion + after);
+    
+    // Focus back and set selection
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + insertion.length;
+    }, 0);
+  };
+
+  const handleAutoFix = (warning: Warning) => {
+    let newTemplate = template;
+    if (warning.concept === "urgent") {
+      if (warning.type === "CONCEPT_METRIC_CONFLICT") {
+        newTemplate = newTemplate.replace(/2\s*(?:hours|hour|h|)-hour/gi, "4 hours");
+        newTemplate = newTemplate.replace(/2\s*(?:hours|hour|h)/gi, "4 hours");
+      } else if (warning.type === "LEGACY_CONCEPT_REFERENCE") {
+        newTemplate = newTemplate.replace(/two\s*hours/gi, "4 hours");
+        newTemplate = newTemplate.replace(/SLA\s*policy\s*v2/gi, "SLA policy v3");
+      }
+    }
+    setTemplate(newTemplate);
+    
+    setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.evaluatePrompt(projectId, newTemplate, inputs, mockModel);
+        setRenderedPrompt(res.rendered_prompt);
+        setMockResponse(res.mock_response);
+        setWarnings(res.warnings || []);
+        setEvaluated(true);
+      } catch (err) {
+        console.error(err);
+        setError("Auto-fix evaluation failed. Please run manually.");
+      } finally {
+        setLoading(false);
+      }
+    }, 100);
+  };
 
   // Parse variables from template
   useEffect(() => {
@@ -216,23 +284,83 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
         <div className="lg:col-span-7 space-y-6">
           <div className="glass-panel p-6 rounded-2xl border border-white/5 space-y-6">
             
-            {/* Prompt Template Textarea */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Prompt Template
-                </label>
-                <div className="text-[10px] text-indigo-400 font-medium">
-                  Supports double-brace variables <span className="font-mono bg-indigo-500/10 px-1 py-0.5 rounded">{"{{variable}}"}</span>
+            {/* Prompt Template & Concept Registry Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              {/* Prompt Template Textarea */}
+              <div className="md:col-span-8 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Prompt Template
+                  </label>
+                  <div className="text-[10px] text-indigo-400 font-medium">
+                    Supports <span className="font-mono bg-indigo-500/10 px-1 py-0.5 rounded">{"{{variable}}"}</span>
+                  </div>
+                </div>
+                <textarea
+                  id="prompt-textarea"
+                  value={template}
+                  onChange={(e) => setTemplate(e.target.value)}
+                  placeholder="Write your prompt template here..."
+                  rows={14}
+                  className="w-full bg-[#050811]/90 border border-white/5 rounded-xl p-4 text-xs font-mono text-gray-300 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 leading-relaxed shadow-inner"
+                />
+              </div>
+
+              {/* Concept Registry Sidebar Reference */}
+              <div className="md:col-span-4 space-y-3">
+                <div className="flex items-center space-x-1.5 border-b border-white/5 pb-2">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Concept Registry
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400 leading-normal">
+                  Click a concept card to insert it as a dynamic template variable at cursor.
+                </p>
+
+                <div className="space-y-3.5 max-h-[260px] overflow-y-auto pr-1">
+                  {loadingConcepts ? (
+                    <div className="py-8 text-center text-gray-500 text-[10px] flex flex-col items-center justify-center space-y-2">
+                      <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                      <span>Loading registry...</span>
+                    </div>
+                  ) : concepts.length === 0 ? (
+                    <div className="py-8 text-center text-gray-500 italic text-[10px]">
+                      No concepts registered.
+                    </div>
+                  ) : (
+                    concepts.map((c) => {
+                      const activeVer = c.versions.find((v) => !v.effective_to) || c.versions[c.versions.length - 1];
+                      const keyInTemplate = template.toLowerCase().includes(`{{${c.concept_key.toLowerCase()}}}`);
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => insertConcept(c.concept_key)}
+                          className={`glass-card p-3 rounded-xl border transition-all text-left cursor-pointer flex flex-col space-y-1.5 ${
+                            keyInTemplate
+                              ? "bg-indigo-500/[0.04] border-indigo-500/30 hover:border-indigo-500/50"
+                              : "bg-white/[0.01] border-white/5 hover:border-white/10 hover:bg-white/[0.02]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-indigo-300 font-mono tracking-wider">
+                              {c.concept_key}
+                            </span>
+                            <span className="text-[8px] font-mono text-gray-500 bg-white/5 px-1 py-0.5 rounded">
+                              {activeVer?.version || "v1"}
+                            </span>
+                          </div>
+                          {activeVer && (
+                            <div className="text-[9px] text-gray-400 leading-snug line-clamp-3 hover:line-clamp-none transition-all">
+                              {activeVer.definition}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-              <textarea
-                value={template}
-                onChange={(e) => setTemplate(e.target.value)}
-                placeholder="Write your prompt template here..."
-                rows={12}
-                className="w-full bg-[#050811]/90 border border-white/5 rounded-xl p-4 text-xs font-mono text-gray-300 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 leading-relaxed shadow-inner"
-              />
             </div>
 
             {/* Template Variables Section */}
@@ -413,6 +541,19 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
                           }`}>
                             <strong className="uppercase text-[9px] tracking-wider block mb-0.5">Recommendation:</strong>
                             {w.recommendation}
+                            
+                            {(w.concept === "urgent" && (w.type === "CONCEPT_METRIC_CONFLICT" || w.type === "LEGACY_CONCEPT_REFERENCE")) && (
+                              <button
+                                onClick={() => handleAutoFix(w)}
+                                className={`mt-2 px-3 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-colors border cursor-pointer block ${
+                                  isHigh
+                                    ? "bg-red-500/20 hover:bg-red-500/35 border-red-500/30 text-red-200"
+                                    : "bg-amber-500/20 hover:bg-amber-500/35 border-amber-500/30 text-amber-200"
+                                }`}
+                              >
+                                Apply Auto-Fix
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
