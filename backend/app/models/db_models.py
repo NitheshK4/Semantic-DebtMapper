@@ -280,5 +280,6 @@ class ActionCard(Base):
     title = Column(String, nullable=False)
     steps = Column(JSON, nullable=False)
     status = Column(String, default="open")  # open, acknowledged, resolved
+    notes = Column(Text, nullable=True)
 
     run = relationship("DetectorRun", back_populates="action_cards")

@@ -207,6 +207,8 @@ def update_action_status(
         raise HTTPException(status_code=404, detail="Action card not found")
 
     card.status = payload.status.lower()
+    if payload.notes is not None:
+        card.notes = payload.notes
     db.commit()
     db.refresh(card)
     return card

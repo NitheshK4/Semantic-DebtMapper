@@ -91,3 +91,15 @@ def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
+
+
+def test_patch_action_card_not_found(client):
+    """Test patching a non-existent action card returns 404."""
+    from uuid import uuid4
+    payload = {"status": "acknowledged", "notes": "Working on this"}
+    response = client.patch(
+        f"/api/v1/projects/{uuid4()}/actions/{uuid4()}",
+        json=payload,
+        headers=headers,
+    )
+    assert response.status_code == 404

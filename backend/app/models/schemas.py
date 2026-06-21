@@ -150,12 +150,14 @@ class ActionCardOut(BaseModel):
     title: str
     steps: List[str]
     status: str
+    notes: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ActionCardUpdate(BaseModel):
     status: str
+    notes: Optional[str] = None
 
 
 class DetectorRunOut(BaseModel):
