@@ -217,7 +217,11 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({ projectId }) => {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-gray-200 leading-relaxed block font-mono bg-white/[0.01] border border-white/[0.02] p-2 rounded">
+                            <span className={`leading-relaxed block p-2 rounded ${
+                              k === "description"
+                                ? "text-indigo-200 font-sans text-[11px] bg-indigo-500/[0.03] border border-indigo-500/10 font-semibold"
+                                : "text-gray-200 font-mono bg-white/[0.01] border border-white/[0.02]"
+                            }`}>
                               {String(v)}
                             </span>
                           )}

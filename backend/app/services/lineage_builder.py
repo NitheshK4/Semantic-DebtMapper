@@ -205,6 +205,7 @@ class LineageBuilder:
                     "expression": r.expression,
                     "created_for_model_version": r.created_for_model_version,
                     "endpoint_id": r.endpoint_id,
+                    "description": r.description,
                 },
             )
 
