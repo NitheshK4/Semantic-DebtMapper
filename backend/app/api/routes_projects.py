@@ -197,6 +197,7 @@ def seed_project_data(
             active_to=(
                 datetime.fromisoformat(r["active_to"]) if r.get("active_to") else None
             ),
+            description=r.get("description", f"Business post-processing rule threshold filter for {r['rule_id']}"),
         )
         for r in rls
     ]

@@ -175,6 +175,7 @@ class IngestionService:
                 existing.created_for_model_version = rule.created_for_model_version
                 existing.active_from = rule.active_from
                 existing.active_to = rule.active_to
+                existing.description = rule.description
                 existing.payload = rule.payload
             else:
                 db.add(
@@ -187,6 +188,7 @@ class IngestionService:
                         created_for_model_version=rule.created_for_model_version,
                         active_from=rule.active_from,
                         active_to=rule.active_to,
+                        description=rule.description,
                         payload=rule.payload,
                     )
                 )

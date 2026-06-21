@@ -139,6 +139,7 @@ class BusinessRule(Base):
     created_for_model_version = Column(String, nullable=True)
     active_from = Column(DateTime(timezone=True), nullable=False)
     active_to = Column(DateTime(timezone=True), nullable=True)
+    description = Column(String, nullable=True)
     payload = Column(JSON, default=dict)
 
     project = relationship("Project", back_populates="business_rules")

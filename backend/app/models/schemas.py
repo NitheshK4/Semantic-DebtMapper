@@ -53,6 +53,7 @@ class BusinessRuleIngest(BaseModel):
     created_for_model_version: Optional[str] = None
     active_from: datetime
     active_to: Optional[datetime] = None
+    description: Optional[str] = None
     payload: Dict[str, Any] = Field(default_factory=dict)
 
 
