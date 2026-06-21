@@ -4,7 +4,7 @@ import { CheckSquare, Square, CheckCircle } from "lucide-react";
 
 interface ActionCenterProps {
   actions: ActionCard[];
-  onUpdateStatus: (actionId: string, status: string) => Promise<void>;
+  onUpdateStatus: (actionId: string, status: string, notes?: string) => Promise<void>;
 }
 
 export const ActionCenter: React.FC<ActionCenterProps> = ({
@@ -13,6 +13,7 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
 }) => {
   const [filterStatus, setFilterStatus] = useState<string>("open");
   const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const filteredActions = actions.filter((a) => a.status === filterStatus);
 
@@ -140,11 +141,34 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
               </div>
             </div>
 
+            {/* Notes input / existing notes */}
+            {card.notes && (
+              <div className="mt-3.5 p-3 bg-indigo-500/[0.03] rounded-xl border border-indigo-500/10 text-[10px] text-indigo-300">
+                <span className="font-bold uppercase tracking-wider block text-[8px] text-gray-500 mb-0.5">Remediation Notes:</span>
+                "{card.notes}"
+              </div>
+            )}
+
+            {card.status !== "resolved" && (
+              <div className="mt-3.5 space-y-1">
+                <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">
+                  Add comment / Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="Describe your remediation action..."
+                  value={notes[card.id] || ""}
+                  onChange={(e) => setNotes(prev => ({ ...prev, [card.id]: e.target.value }))}
+                  className="w-full bg-[#050811]/90 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-indigo-500/50"
+                />
+              </div>
+            )}
+
             {/* Action buttons */}
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-end space-x-2">
               {card.status === "open" && (
                 <button
-                  onClick={() => onUpdateStatus(card.id, "acknowledged")}
+                  onClick={() => onUpdateStatus(card.id, "acknowledged", notes[card.id])}
                   className="px-3.5 py-1.5 rounded-lg border border-white/5 text-[11px] font-bold text-gray-400 hover:text-white hover:border-white/10 transition-colors"
                 >
                   Acknowledge
@@ -152,7 +176,7 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
               )}
               {card.status !== "resolved" && (
                 <button
-                  onClick={() => onUpdateStatus(card.id, "resolved")}
+                  onClick={() => onUpdateStatus(card.id, "resolved", notes[card.id])}
                   className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[11px] font-bold text-white transition-colors flex items-center shadow-lg shadow-indigo-600/10"
                 >
                   Resolve Item <CheckCircle className="w-3.5 h-3.5 ml-1" />

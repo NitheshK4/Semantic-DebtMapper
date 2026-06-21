@@ -82,10 +82,10 @@ function AppContent() {
     }
   }, [token]);
 
-  const handleUpdateActionStatus = async (actionId: string, status: string) => {
+  const handleUpdateActionStatus = async (actionId: string, status: string, notes?: string) => {
     if (!project) return;
     try {
-      await api.updateActionStatus(project.id, actionId, status);
+      await api.updateActionStatus(project.id, actionId, status, notes);
       // Refresh actions list
       const a = await api.getActions(project.id);
       setActions(a);

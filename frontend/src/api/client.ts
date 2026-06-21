@@ -65,6 +65,7 @@ export interface ActionCard {
   title: string;
   steps: string[];
   status: string;
+  notes?: string;
 }
 
 export interface DetectorRun {
@@ -253,13 +254,14 @@ export const api = {
     projectId: string,
     actionId: string,
     status: string,
+    notes?: string,
   ): Promise<ActionCard> => {
     const res = await fetch(
       `${API_URL}/projects/${projectId}/actions/${actionId}`,
       {
         method: "PATCH",
         headers: getHeaders(),
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, notes }),
       },
     );
     return res.json();
