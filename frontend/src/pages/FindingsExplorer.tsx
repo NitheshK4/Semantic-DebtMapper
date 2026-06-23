@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Finding } from "../api/client";
-import { Search, Eye, Filter, CheckCircle, ShieldAlert } from "lucide-react";
+import { Search, Eye, Filter, CheckCircle, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface FindingsExplorerProps {
   findings: Finding[];
@@ -13,9 +13,18 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
+  
+  // Pagination state
+  const [page, setPage] = useState<number>(1);
+  const itemsPerPage = 5;
 
   const detectors = ["all", "CMD", "ESF", "RMC", "HMD", "GFM"];
   const severities = ["all", "critical", "high", "medium", "low"];
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [detectorFilter, severityFilter, searchTerm]);
 
   // Filter logic
   const filteredFindings = findings.filter((f) => {
@@ -32,6 +41,10 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
 
     return matchesDetector && matchesSeverity && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredFindings.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedFindings = filteredFindings.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="space-y-6 animate-fade-in relative">
@@ -105,55 +118,85 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* List of findings */}
-        <div className="lg:col-span-2 space-y-3.5 max-h-[620px] overflow-y-auto pr-1">
-          {filteredFindings.map((f) => (
-            <div
-              key={f.id}
-              onClick={() => setSelectedFinding(f)}
-              className={`glass-panel p-5 rounded-2xl cursor-pointer transition-all border ${
-                selectedFinding?.id === f.id
-                  ? "border-indigo-500/40 bg-[#0d1222]/80 shadow-[0_0_20px_rgba(99,102,241,0.04)]"
-                  : "border-white/5 hover:border-white/10 hover:bg-white/[0.01]"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                    {f.detector}
+        <div className="lg:col-span-2 space-y-3.5 max-h-[620px] overflow-y-auto pr-1 flex flex-col justify-between">
+          <div className="space-y-3.5">
+            {paginatedFindings.map((f) => (
+              <div
+                key={f.id}
+                onClick={() => setSelectedFinding(f)}
+                className={`glass-panel p-5 rounded-2xl cursor-pointer transition-all border ${
+                  selectedFinding?.id === f.id
+                    ? "border-indigo-500/40 bg-[#0d1222]/80 shadow-[0_0_20px_rgba(99,102,241,0.04)]"
+                    : "border-white/5 hover:border-white/10 hover:bg-white/[0.01]"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                      {f.detector}
+                    </span>
+                    <h3 className="text-sm font-bold text-white mt-1.5 tracking-tight">
+                      Drift in: {f.target || "Global Pipeline"}
+                    </h3>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide border ${
+                      f.severity === "critical"
+                        ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                        : f.severity === "high"
+                          ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                          : f.severity === "medium"
+                            ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                            : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                    }`}
+                  >
+                    {f.severity}
                   </span>
-                  <h3 className="text-sm font-bold text-white mt-1.5 tracking-tight">
-                    Drift in: {f.target || "Global Pipeline"}
-                  </h3>
                 </div>
-                <span
-                  className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide border ${
-                    f.severity === "critical"
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                      : f.severity === "high"
-                        ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                        : f.severity === "medium"
-                          ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                          : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                  }`}
-                >
-                  {f.severity}
-                </span>
-              </div>
-              <p className="text-xs text-gray-400 mt-2.5 leading-relaxed">
-                {f.payload?.recommendation as string}
-              </p>
+                <p className="text-xs text-gray-400 mt-2.5 leading-relaxed">
+                  {f.payload?.recommendation as string}
+                </p>
 
-              <div className="mt-4 flex items-center justify-between text-[10px] text-gray-500 font-medium">
-                <span>
-                  Detected: {new Date(f.created_at).toLocaleDateString()}
+                <div className="mt-4 flex items-center justify-between text-[10px] text-gray-500 font-medium">
+                  <span>
+                    Detected: {new Date(f.created_at).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center text-indigo-400 font-bold uppercase tracking-wider">
+                    Inspect diagnostic data
+                    <Eye className="w-3.5 h-3.5 ml-1" />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredFindings.length > 0 && (
+            <div className="flex items-center justify-between pt-4 pb-2 px-1 text-[11px] text-gray-500 border-t border-white/5 mt-4">
+              <span>
+                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredFindings.length)} of {filteredFindings.length} findings
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-white/5 bg-[#0a0d16] text-gray-400 hover:text-white disabled:opacity-40 disabled:hover:text-gray-400 transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="font-bold text-white">
+                  Page {page} of {totalPages || 1}
                 </span>
-                <span className="flex items-center text-indigo-400 font-bold uppercase tracking-wider">
-                  Inspect diagnostic data
-                  <Eye className="w-3.5 h-3.5 ml-1" />
-                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={page === totalPages || totalPages === 0}
+                  className="p-1.5 rounded-lg border border-white/5 bg-[#0a0d16] text-gray-400 hover:text-white disabled:opacity-40 disabled:hover:text-gray-400 transition-colors"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-          ))}
+          )}
 
           {filteredFindings.length === 0 && (
             <div className="glass-panel p-12 rounded-2xl text-center text-gray-500">

@@ -231,9 +231,19 @@ export const api = {
   getFindings: async (
     projectId: string,
     severity?: string,
+    detector?: string,
+    limit?: number,
+    offset?: number,
   ): Promise<Finding[]> => {
-    const url = severity
-      ? `${API_URL}/projects/${projectId}/findings?severity=${severity}`
+    const params = new URLSearchParams();
+    if (severity && severity !== "all") params.append("severity", severity);
+    if (detector && detector !== "all") params.append("detector", detector);
+    if (limit !== undefined) params.append("limit", String(limit));
+    if (offset !== undefined) params.append("offset", String(offset));
+    
+    const queryString = params.toString();
+    const url = queryString 
+      ? `${API_URL}/projects/${projectId}/findings?${queryString}`
       : `${API_URL}/projects/${projectId}/findings`;
     const res = await fetch(url, { headers: getHeaders() });
     return res.json();
@@ -242,11 +252,27 @@ export const api = {
   getActions: async (
     projectId: string,
     status?: string,
+    limit?: number,
+    offset?: number,
   ): Promise<ActionCard[]> => {
-    const url = status
-      ? `${API_URL}/projects/${projectId}/actions?status=${status}`
+    const params = new URLSearchParams();
+    if (status && status !== "all") params.append("status", status);
+    if (limit !== undefined) params.append("limit", String(limit));
+    if (offset !== undefined) params.append("offset", String(offset));
+    
+    const queryString = params.toString();
+    const url = queryString
+      ? `${API_URL}/projects/${projectId}/actions?${queryString}`
       : `${API_URL}/projects/${projectId}/actions`;
     const res = await fetch(url, { headers: getHeaders() });
+    return res.json();
+  },
+
+  exportFindings: async (projectId: string): Promise<Record<string, unknown>> => {
+    const res = await fetch(`${API_URL}/projects/${projectId}/findings/export`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to export findings");
     return res.json();
   },
 
