@@ -227,3 +227,43 @@ def test_concurrent_audit_runs_prevention(client):
         db.close()
         # Cleanup project (which cascades and deletes the detector run)
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)
+
+
+def test_findings_export_endpoint(client):
+    """Test that the findings export API route returns correctly structured project and findings data."""
+    # 1. Create project
+    proj_payload = {"name": "Test Export Project", "domain": "support_tickets"}
+    res = client.post("/api/v1/projects", json=proj_payload, headers=headers)
+    assert res.status_code == 201
+    project_id = res.json()["id"]
+
+    try:
+        # 2. Seed data
+        res = client.post(f"/api/v1/projects/{project_id}/seed", headers=headers)
+        assert res.status_code == 200
+
+        # 3. Run audit synchronously
+        run_payload = {"detectors": ["CMD", "ESF", "RMC", "HMD", "GFM"]}
+        res = client.post(
+            f"/api/v1/projects/{project_id}/audits/run?sync=true",
+            json=run_payload,
+            headers=headers,
+        )
+        assert res.status_code in (200, 202)
+
+        # 4. Trigger export
+        res = client.get(
+            f"/api/v1/projects/{project_id}/findings/export", headers=headers
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["project_id"] == project_id
+        assert data["project_name"] == "Test Export Project"
+        assert "findings" in data
+        assert len(data["findings"]) > 0
+        assert "latest_run" in data
+        assert data["latest_run"]["findings_count"] == len(data["findings"])
+
+    finally:
+        # Cleanup
+        client.delete(f"/api/v1/projects/{project_id}", headers=headers)
