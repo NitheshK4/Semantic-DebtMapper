@@ -141,6 +141,8 @@ def get_audit_by_id(
 def list_findings(
     project_id: UUID,
     severity: Optional[str] = Query(None, description="Filter by severity"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of findings to return"),
+    offset: int = Query(0, ge=0, description="Number of findings to skip"),
     db: Session = Depends(get_db),
     _=Depends(verify_api_key),
 ):
@@ -161,7 +163,7 @@ def list_findings(
     if severity:
         query = query.filter(Finding.severity == severity.lower())
 
-    return query.all()
+    return query.offset(offset).limit(limit).all()
 
 
 @router.get("/actions", response_model=List[ActionCardOut])
@@ -170,6 +172,8 @@ def list_actions(
     status: Optional[str] = Query(
         None, description="Filter by status (open, acknowledged, resolved)"
     ),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of actions to return"),
+    offset: int = Query(0, ge=0, description="Number of actions to skip"),
     db: Session = Depends(get_db),
     _=Depends(verify_api_key),
 ):
@@ -190,7 +194,7 @@ def list_actions(
     if status:
         query = query.filter(ActionCard.status == status.lower())
 
-    return query.order_by(ActionCard.priority.desc()).all()
+    return query.order_by(ActionCard.priority.desc()).offset(offset).limit(limit).all()
 
 
 @router.patch("/actions/{action_id}", response_model=ActionCardOut)
