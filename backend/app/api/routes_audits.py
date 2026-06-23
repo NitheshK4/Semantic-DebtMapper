@@ -141,6 +141,7 @@ def get_audit_by_id(
 def list_findings(
     project_id: UUID,
     severity: Optional[str] = Query(None, description="Filter by severity"),
+    detector: Optional[str] = Query(None, description="Filter by detector (CMD, ESF, RMC, HMD, GFM)"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of findings to return"),
     offset: int = Query(0, ge=0, description="Number of findings to skip"),
     db: Session = Depends(get_db),
@@ -162,6 +163,8 @@ def list_findings(
     query = db.query(Finding).filter(Finding.run_id == run.id)
     if severity:
         query = query.filter(Finding.severity == severity.lower())
+    if detector:
+        query = query.filter(Finding.detector == detector.upper())
 
     return query.offset(offset).limit(limit).all()
 
