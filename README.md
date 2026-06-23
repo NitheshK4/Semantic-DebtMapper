@@ -136,6 +136,29 @@ npm run dev
 
 ---
 
+## 📊 Extended API & UI Features
+
+We have extended the platform with several production-ready capabilities:
+
+1. **API Pagination & Filtering**:
+   - `/projects/{project_id}/findings` supports optional query filters:
+     - `limit` (default: 100) and `offset` (default: 0) for result pagination.
+     - `detector` to filter by engine codes (`CMD`, `ESF`, `RMC`, `HMD`, `GFM`).
+   - `/projects/{project_id}/actions` supports query filters:
+     - `limit` (default: 100) and `offset` (default: 0) for result pagination.
+
+2. **JSON Export Endpoint**:
+   - `/projects/{project_id}/findings/export` provides a structured snapshot of a project's metadata, active Semantic Debt Score (SDS), and computed findings for compliance registries and audits.
+
+3. **Concurrency Locks**:
+   - Attempts to trigger audits while a previous run is `pending` or `running` are locked and rejected with `409 Conflict` to prevent state collision or SQLite locking.
+
+4. **UI Improvements**:
+   - Embedded interactive **Pagination Controls** (5 items per page) in the **Findings Explorer** registry list.
+   - Built a custom **"Export JSON"** download button in the overview dashboard, enabling rapid offline compliance audits.
+
+---
+
 ## 🧪 Verification & Testing
 
 ### Running Python Tests
