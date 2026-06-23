@@ -187,3 +187,43 @@ def test_paginated_and_filtered_findings_and_actions(client):
     finally:
         # Cleanup
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)
+
+
+def test_concurrent_audit_runs_prevention(client):
+    """Test that starting an audit run fails with 409 Conflict if there's already an active run."""
+    # 1. Create project
+    proj_payload = {"name": "Test Concurrent Runs Project", "domain": "support_tickets"}
+    res = client.post("/api/v1/projects", json=proj_payload, headers=headers)
+    assert res.status_code == 201
+    project_id = res.json()["id"]
+
+    from app.core.db import SessionLocal
+    from app.models.db_models import DetectorRun
+    from datetime import datetime
+    import uuid
+
+    db = SessionLocal()
+    try:
+        # 2. Insert a dummy pending/running detector run
+        active_run = DetectorRun(
+            project_id=uuid.UUID(project_id),
+            started_at=datetime.utcnow(),
+            status="running",
+        )
+        db.add(active_run)
+        db.commit()
+
+        # 3. Attempt to trigger another run
+        run_payload = {"detectors": ["CMD"]}
+        res = client.post(
+            f"/api/v1/projects/{project_id}/audits/run?sync=true",
+            json=run_payload,
+            headers=headers,
+        )
+        assert res.status_code == 409
+        assert "already active" in res.json()["detail"]
+
+    finally:
+        db.close()
+        # Cleanup project (which cascades and deletes the detector run)
+        client.delete(f"/api/v1/projects/{project_id}", headers=headers)
