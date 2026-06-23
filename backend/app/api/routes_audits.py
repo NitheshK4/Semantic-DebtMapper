@@ -38,6 +38,21 @@ async def run_audit(
 ):
     check_project_exists(project_id, db)
 
+    # Check for overlapping active runs
+    active_run = (
+        db.query(DetectorRun)
+        .filter(
+            DetectorRun.project_id == project_id,
+            DetectorRun.status.in_(["pending", "running"]),
+        )
+        .first()
+    )
+    if active_run:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"An audit run is already active (ID: {active_run.id}, status: {active_run.status})",
+        )
+
     as_of_str = (
         payload.as_of.isoformat() if payload.as_of else datetime.now().isoformat()
     )
