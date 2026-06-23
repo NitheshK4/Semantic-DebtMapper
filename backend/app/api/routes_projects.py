@@ -266,3 +266,58 @@ def seed_project_data(
     IngestionService.ingest_overrides_batch(db, project_id, overrides_payload)
 
     return {"status": "success", "seeded": True}
+
+
+@router.get("/{project_id}/findings/export")
+def export_findings(
+    project_id: UUID,
+    db: Session = Depends(get_db),
+    _=Depends(verify_api_key),
+):
+    from app.models.db_models import DetectorRun, Finding
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Get latest completed run
+    run = (
+        db.query(DetectorRun)
+        .filter(DetectorRun.project_id == project_id, DetectorRun.status == "completed")
+        .order_by(DetectorRun.started_at.desc())
+        .first()
+    )
+
+    findings_data = []
+    sds_score = None
+    run_id = None
+    run_date = None
+
+    if run:
+        run_id = str(run.id)
+        sds_score = float(run.sds_score) if run.sds_score is not None else None
+        run_date = run.finished_at.isoformat() if run.finished_at else run.started_at.isoformat()
+        findings = db.query(Finding).filter(Finding.run_id == run.id).all()
+        for f in findings:
+            findings_data.append({
+                "id": str(f.id),
+                "detector": f.detector,
+                "severity": f.severity,
+                "target": f.target,
+                "payload": f.payload,
+                "created_at": f.created_at.isoformat() if f.created_at else None
+            })
+
+    return {
+        "project_id": str(project.id),
+        "project_name": project.name,
+        "project_domain": project.domain,
+        "exported_at": datetime.now().isoformat(),
+        "latest_run": {
+            "run_id": run_id,
+            "sds_score": sds_score,
+            "completed_at": run_date,
+            "findings_count": len(findings_data),
+        },
+        "findings": findings_data
+    }
