@@ -208,6 +208,7 @@ function AppContent() {
           >
             {currentPage === "overview" && (
               <Overview
+                projectId={project?.id}
                 run={latestRun}
                 findings={findings}
                 onNavigate={(page) => setCurrentPage(page)}

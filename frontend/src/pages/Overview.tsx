@@ -15,17 +15,20 @@ import {
   Settings,
   FileText,
   ArrowUpRight,
+  Download,
 } from "lucide-react";
-import { DetectorRun, Finding } from "../api/client";
+import { api, DetectorRun, Finding } from "../api/client";
 import { motion } from "framer-motion";
 
 interface OverviewProps {
+  projectId?: string;
   run: DetectorRun | null;
   findings: Finding[];
   onNavigate: (page: string) => void;
 }
 
 export const Overview: React.FC<OverviewProps> = ({
+  projectId,
   run,
   findings,
   onNavigate,
@@ -303,13 +306,41 @@ export const Overview: React.FC<OverviewProps> = ({
               Drill down into active pipeline telemetry debt
             </p>
           </div>
-          <button
-            onClick={() => onNavigate("findings")}
-            className="flex items-center text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors group"
-          >
-            Open Explorer{" "}
-            <ArrowUpRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </button>
+          <div className="flex items-center space-x-4">
+            {projectId && (
+              <button
+                onClick={async () => {
+                  try {
+                    const data = await api.exportFindings(projectId);
+                    const blob = new Blob([JSON.stringify(data, null, 2)], {
+                      type: "application/json",
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `sdm-findings-${projectId}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  } catch (e) {
+                    console.error("Failed to export findings:", e);
+                  }
+                }}
+                className="flex items-center text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors group bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg"
+              >
+                <Download className="w-3.5 h-3.5 mr-1" />
+                Export JSON
+              </button>
+            )}
+            <button
+              onClick={() => onNavigate("findings")}
+              className="flex items-center text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors group"
+            >
+              Open Explorer{" "}
+              <ArrowUpRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
