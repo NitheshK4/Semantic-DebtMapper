@@ -103,3 +103,87 @@ def test_patch_action_card_not_found(client):
         headers=headers,
     )
     assert response.status_code == 404
+
+
+def test_paginated_and_filtered_findings_and_actions(client):
+    """Test that findings and actions API routes correctly handle limit, offset, and detector filtering."""
+    # 1. Create temporary project
+    proj_payload = {"name": "Test Pagination Project", "domain": "support_tickets"}
+    res = client.post("/api/v1/projects", json=proj_payload, headers=headers)
+    assert res.status_code == 201
+    project_id = res.json()["id"]
+
+    try:
+        # 2. Seed data
+        res = client.post(f"/api/v1/projects/{project_id}/seed", headers=headers)
+        assert res.status_code == 200
+
+        # 3. Run audit synchronously
+        run_payload = {"detectors": ["CMD", "ESF", "RMC", "HMD", "GFM"]}
+        res = client.post(
+            f"/api/v1/projects/{project_id}/audits/run?sync=true",
+            json=run_payload,
+            headers=headers,
+        )
+        assert res.status_code in (200, 202)
+
+        # 4. Get all findings to know total count
+        res = client.get(f"/api/v1/projects/{project_id}/findings", headers=headers)
+        assert res.status_code == 200
+        all_findings = res.json()
+        assert len(all_findings) > 0
+
+        # Test Findings Pagination limit
+        res = client.get(
+            f"/api/v1/projects/{project_id}/findings?limit=2", headers=headers
+        )
+        assert res.status_code == 200
+        limit_findings = res.json()
+        assert len(limit_findings) <= 2
+
+        # Test Findings Pagination offset
+        if len(all_findings) > 1:
+            res = client.get(
+                f"/api/v1/projects/{project_id}/findings?limit=1&offset=1",
+                headers=headers,
+            )
+            assert res.status_code == 200
+            offset_findings = res.json()
+            assert len(offset_findings) == 1
+            assert offset_findings[0]["id"] == all_findings[1]["id"]
+
+        # Test Findings Filter by Detector
+        res = client.get(
+            f"/api/v1/projects/{project_id}/findings?detector=CMD", headers=headers
+        )
+        assert res.status_code == 200
+        cmd_findings = res.json()
+        for f in cmd_findings:
+            assert f["detector"] == "CMD"
+
+        # Test Actions Pagination
+        res = client.get(f"/api/v1/projects/{project_id}/actions", headers=headers)
+        assert res.status_code == 200
+        all_actions = res.json()
+        assert len(all_actions) > 0
+
+        res = client.get(
+            f"/api/v1/projects/{project_id}/actions?limit=1", headers=headers
+        )
+        assert res.status_code == 200
+        limit_actions = res.json()
+        assert len(limit_actions) <= 1
+
+        if len(all_actions) > 1:
+            res = client.get(
+                f"/api/v1/projects/{project_id}/actions?limit=1&offset=1",
+                headers=headers,
+            )
+            assert res.status_code == 200
+            offset_actions = res.json()
+            assert len(offset_actions) == 1
+            assert offset_actions[0]["id"] == all_actions[1]["id"]
+
+    finally:
+        # Cleanup
+        client.delete(f"/api/v1/projects/{project_id}", headers=headers)
