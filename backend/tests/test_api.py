@@ -329,3 +329,47 @@ def test_reports_endpoints(client):
     finally:
         # Cleanup
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)
+
+
+def test_delete_business_rule(client):
+    """Test deleting a business rule from a project."""
+    # 1. Create project
+    proj_payload = {"name": "Test Delete Rule Project", "domain": "support_tickets"}
+    res = client.post("/api/v1/projects", json=proj_payload, headers=headers)
+    assert res.status_code == 201
+    project_id = res.json()["id"]
+
+    try:
+        # 2. Seed data (adds business rules)
+        res = client.post(f"/api/v1/projects/{project_id}/seed", headers=headers)
+        assert res.status_code == 200
+
+        # 3. Delete existing rule
+        rule_id = "threshold_urgent"
+        res = client.delete(
+            f"/api/v1/projects/{project_id}/rules/{rule_id}", headers=headers
+        )
+        assert res.status_code == 204
+
+        # 4. Attempt to delete again (should fail with 404)
+        res = client.delete(
+            f"/api/v1/projects/{project_id}/rules/{rule_id}", headers=headers
+        )
+        assert res.status_code == 404
+
+        # 5. Attempt to delete non-existent rule
+        res = client.delete(
+            f"/api/v1/projects/{project_id}/rules/invalid_rule_abc", headers=headers
+        )
+        assert res.status_code == 404
+
+        # 6. Attempt to delete rule on non-existent project
+        import uuid
+        res = client.delete(
+            f"/api/v1/projects/{uuid.uuid4()}/rules/{rule_id}", headers=headers
+        )
+        assert res.status_code == 404
+
+    finally:
+        # Cleanup
+        client.delete(f"/api/v1/projects/{project_id}", headers=headers)

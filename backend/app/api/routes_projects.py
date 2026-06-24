@@ -321,3 +321,30 @@ def export_findings(
         },
         "findings": findings_data
     }
+
+
+@router.delete("/{project_id}/rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_business_rule(
+    project_id: UUID,
+    rule_id: str,
+    db: Session = Depends(get_db),
+    _=Depends(verify_api_key),
+):
+    from app.models.db_models import BusinessRule
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    rules = (
+        db.query(BusinessRule)
+        .filter(BusinessRule.project_id == project_id, BusinessRule.rule_id == rule_id)
+        .all()
+    )
+    if not rules:
+        raise HTTPException(status_code=404, detail="Business rule not found")
+
+    for r in rules:
+        db.delete(r)
+    db.commit()
+    return None
