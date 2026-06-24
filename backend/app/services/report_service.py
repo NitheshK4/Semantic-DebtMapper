@@ -2,6 +2,7 @@ import html
 import logging
 from datetime import datetime
 from io import BytesIO
+from typing import Optional
 from uuid import UUID
 
 from reportlab.lib import colors
@@ -24,12 +25,15 @@ class ReportService:
     """
 
     @staticmethod
-    def get_weekly_report_markdown(db: Session, project_id: UUID) -> str:
+    def get_weekly_report_markdown(
+        db: Session, project_id: UUID, run_id: Optional[UUID] = None
+    ) -> str:
         """Generate a weekly audit report in Markdown format.
 
         Args:
             db: SQLAlchemy database session.
             project_id: Unique identifier of the project.
+            run_id: Optional UUID of the specific detector run.
 
         Returns:
             A string containing the formatted Markdown report.
@@ -38,15 +42,26 @@ class ReportService:
         if not project:
             return "# Project Not Found"
 
-        # Fetch latest completed run
-        run = (
-            db.query(DetectorRun)
-            .filter(
-                DetectorRun.project_id == project_id, DetectorRun.status == "completed"
+        if run_id:
+            run = (
+                db.query(DetectorRun)
+                .filter(
+                    DetectorRun.project_id == project_id,
+                    DetectorRun.id == run_id,
+                    DetectorRun.status == "completed",
+                )
+                .first()
             )
-            .order_by(DetectorRun.started_at.desc())
-            .first()
-        )
+        else:
+            # Fetch latest completed run
+            run = (
+                db.query(DetectorRun)
+                .filter(
+                    DetectorRun.project_id == project_id, DetectorRun.status == "completed"
+                )
+                .order_by(DetectorRun.started_at.desc())
+                .first()
+            )
 
         if not run:
             return f"""# Weekly Meaning Audit Report - {project.name}
@@ -127,7 +142,9 @@ The following action items are ranked by estimated semantic debt reduction and b
         return markdown
 
     @staticmethod
-    def get_weekly_report_pdf(db: Session, project_id: UUID) -> bytes:
+    def get_weekly_report_pdf(
+        db: Session, project_id: UUID, run_id: Optional[UUID] = None
+    ) -> bytes:
         """Generate a weekly audit report in PDF format.
 
         Uses ReportLab to generate a styled, corporate PDF containing
@@ -136,6 +153,7 @@ The following action items are ranked by estimated semantic debt reduction and b
         Args:
             db: SQLAlchemy database session.
             project_id: Unique identifier of the project.
+            run_id: Optional UUID of the specific detector run.
 
         Returns:
             Raw bytes of the generated PDF document.
@@ -144,15 +162,26 @@ The following action items are ranked by estimated semantic debt reduction and b
         proj_name = project.name if project else "Project"
         proj_domain = project.domain if project else "General"
 
-        # Fetch latest completed run
-        run = (
-            db.query(DetectorRun)
-            .filter(
-                DetectorRun.project_id == project_id, DetectorRun.status == "completed"
+        if run_id:
+            run = (
+                db.query(DetectorRun)
+                .filter(
+                    DetectorRun.project_id == project_id,
+                    DetectorRun.id == run_id,
+                    DetectorRun.status == "completed",
+                )
+                .first()
             )
-            .order_by(DetectorRun.started_at.desc())
-            .first()
-        )
+        else:
+            # Fetch latest completed run
+            run = (
+                db.query(DetectorRun)
+                .filter(
+                    DetectorRun.project_id == project_id, DetectorRun.status == "completed"
+                )
+                .order_by(DetectorRun.started_at.desc())
+                .first()
+            )
 
         findings = []
         cards = []

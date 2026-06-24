@@ -290,8 +290,10 @@ def test_reports_endpoints(client):
             headers=headers,
         )
         assert res.status_code in (200, 202)
+        run_id = res.json().get("run_id")
+        assert run_id is not None
 
-        # 4. Fetch Markdown report
+        # 4. Fetch Markdown report without run_id
         res = client.get(
             f"/api/v1/projects/{project_id}/reports/weekly", headers=headers
         )
@@ -299,14 +301,30 @@ def test_reports_endpoints(client):
         assert "text/markdown" in res.headers["content-type"]
         assert "Weekly Meaning Audit Report" in res.text
 
-        # 5. Fetch PDF report
+        # 5. Fetch Markdown report with run_id
         res = client.get(
-            f"/api/v1/projects/{project_id}/reports/weekly.pdf", headers=headers
+            f"/api/v1/projects/{project_id}/reports/weekly?run_id={run_id}", headers=headers
+        )
+        assert res.status_code == 200
+        assert "text/markdown" in res.headers["content-type"]
+        assert "Weekly Meaning Audit Report" in res.text
+        assert run_id in res.text
+
+        # 6. Fetch PDF report with run_id
+        res = client.get(
+            f"/api/v1/projects/{project_id}/reports/weekly.pdf?run_id={run_id}", headers=headers
         )
         assert res.status_code == 200
         assert "application/pdf" in res.headers["content-type"]
-        # PDF files should start with %PDF
         assert res.content.startswith(b"%PDF")
+
+        # 7. Fetch report with non-existent run_id (should return default warning/no run state)
+        import uuid
+        res = client.get(
+            f"/api/v1/projects/{project_id}/reports/weekly?run_id={uuid.uuid4()}", headers=headers
+        )
+        assert res.status_code == 200
+        assert "No audit run" in res.text
 
     finally:
         # Cleanup
