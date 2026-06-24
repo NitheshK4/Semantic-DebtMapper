@@ -122,7 +122,7 @@ class IngestionService:
                 .first()
             )
 
-            payload = {"classes": [cls.dict() for cls in schema.classes]}
+            payload = {"classes": [cls.model_dump() for cls in schema.classes]}
 
             if existing:
                 existing.effective_from = schema.effective_from

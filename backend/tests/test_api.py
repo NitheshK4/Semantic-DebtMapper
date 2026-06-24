@@ -199,7 +199,7 @@ def test_concurrent_audit_runs_prevention(client):
 
     from app.core.db import SessionLocal
     from app.models.db_models import DetectorRun
-    from datetime import datetime
+    from datetime import datetime, timezone
     import uuid
 
     db = SessionLocal()
@@ -207,7 +207,7 @@ def test_concurrent_audit_runs_prevention(client):
         # 2. Insert a dummy pending/running detector run
         active_run = DetectorRun(
             project_id=uuid.UUID(project_id),
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
             status="running",
         )
         db.add(active_run)
