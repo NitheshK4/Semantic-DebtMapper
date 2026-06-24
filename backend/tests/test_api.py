@@ -267,3 +267,47 @@ def test_findings_export_endpoint(client):
     finally:
         # Cleanup
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)
+
+
+def test_reports_endpoints(client):
+    """Test that the weekly reports (markdown and PDF) endpoints return status 200 and correct format."""
+    # 1. Create project
+    proj_payload = {"name": "Test Reports Project", "domain": "support_tickets"}
+    res = client.post("/api/v1/projects", json=proj_payload, headers=headers)
+    assert res.status_code == 201
+    project_id = res.json()["id"]
+
+    try:
+        # 2. Seed data
+        res = client.post(f"/api/v1/projects/{project_id}/seed", headers=headers)
+        assert res.status_code == 200
+
+        # 3. Run audit synchronously
+        run_payload = {"detectors": ["CMD", "ESF", "RMC", "HMD", "GFM"]}
+        res = client.post(
+            f"/api/v1/projects/{project_id}/audits/run?sync=true",
+            json=run_payload,
+            headers=headers,
+        )
+        assert res.status_code in (200, 202)
+
+        # 4. Fetch Markdown report
+        res = client.get(
+            f"/api/v1/projects/{project_id}/reports/weekly", headers=headers
+        )
+        assert res.status_code == 200
+        assert "text/markdown" in res.headers["content-type"]
+        assert "Weekly Meaning Audit Report" in res.text
+
+        # 5. Fetch PDF report
+        res = client.get(
+            f"/api/v1/projects/{project_id}/reports/weekly.pdf", headers=headers
+        )
+        assert res.status_code == 200
+        assert "application/pdf" in res.headers["content-type"]
+        # PDF files should start with %PDF
+        assert res.content.startswith(b"%PDF")
+
+    finally:
+        # Cleanup
+        client.delete(f"/api/v1/projects/{project_id}", headers=headers)
