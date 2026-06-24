@@ -14,8 +14,26 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
   const [filterStatus, setFilterStatus] = useState<string>("open");
   const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [updatingIds, setUpdatingIds] = useState<Record<string, boolean>>({});
 
   const filteredActions = actions.filter((a) => a.status === filterStatus);
+
+  const handleUpdate = async (cardId: string, status: string) => {
+    setUpdatingIds((prev) => ({ ...prev, [cardId]: true }));
+    try {
+      const comment = notes[cardId] || "";
+      await onUpdateStatus(cardId, status, comment);
+      setNotes((prev) => {
+        const next = { ...prev };
+        delete next[cardId];
+        return next;
+      });
+    } catch (e) {
+      console.error("Failed to update status:", e);
+    } finally {
+      setUpdatingIds((prev) => ({ ...prev, [cardId]: false }));
+    }
+  };
 
   const toggleStep = (cardId: string, stepIdx: number) => {
     const key = `${cardId}-${stepIdx}`;
@@ -168,18 +186,20 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-end space-x-2">
               {card.status === "open" && (
                 <button
-                  onClick={() => onUpdateStatus(card.id, "acknowledged", notes[card.id])}
-                  className="px-3.5 py-1.5 rounded-lg border border-white/5 text-[11px] font-bold text-gray-400 hover:text-white hover:border-white/10 transition-colors"
+                  disabled={updatingIds[card.id]}
+                  onClick={() => handleUpdate(card.id, "acknowledged")}
+                  className="px-3.5 py-1.5 rounded-lg border border-white/5 text-[11px] font-bold text-gray-400 hover:text-white hover:border-white/10 transition-colors disabled:opacity-40"
                 >
                   Acknowledge
                 </button>
               )}
               {card.status !== "resolved" && (
                 <button
-                  onClick={() => onUpdateStatus(card.id, "resolved", notes[card.id])}
-                  className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[11px] font-bold text-white transition-colors flex items-center shadow-lg shadow-indigo-600/10"
+                  disabled={updatingIds[card.id]}
+                  onClick={() => handleUpdate(card.id, "resolved")}
+                  className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[11px] font-bold text-white transition-colors flex items-center shadow-lg shadow-indigo-600/10 disabled:opacity-40"
                 >
-                  Resolve Item <CheckCircle className="w-3.5 h-3.5 ml-1" />
+                  {updatingIds[card.id] ? "Updating..." : "Resolve Item"} <CheckCircle className="w-3.5 h-3.5 ml-1" />
                 </button>
               )}
             </div>
