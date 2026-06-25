@@ -216,24 +216,47 @@ def list_actions(
 
 
 @router.patch("/actions/{action_id}", response_model=ActionCardOut)
-def update_action_status(
+async def update_action_status(
     project_id: UUID,
     action_id: UUID,
     payload: ActionCardUpdate,
     db: Session = Depends(get_db),
     _=Depends(verify_api_key),
 ):
-    check_project_exists(project_id, db)
+    project = check_project_exists(project_id, db)
     card = db.query(ActionCard).filter(ActionCard.id == action_id).first()
     if not card:
         raise HTTPException(status_code=404, detail="Action card not found")
 
-    card.status = payload.status.lower()
+    old_status = card.status
+    new_status = payload.status.lower()
+    card.status = new_status
     if payload.notes is not None:
         card.notes = payload.notes
     db.commit()
+
+    if new_status == "resolved" and old_status != "resolved":
+        from app.services.mitigation_service import MitigationService
+        from app.workers.worker import run_audit_task
+        
+        # Apply the actual database mitigation
+        MitigationService.mitigate_action(db, project_id, card)
+        
+        # Run a new audit run synchronously to update findings and SDS score instantly
+        as_of_str = "2026-06-15T00:00:00Z" if project.domain == "support_tickets" else datetime.now().isoformat()
+        try:
+            await run_audit_task(
+                ctx={},
+                project_id_str=str(project_id),
+                detector_names=["CMD", "ESF", "RMC", "HMD", "GFM"],
+                as_of_iso=as_of_str,
+            )
+        except Exception as e:
+            logger.error(f"Failed to auto-run audit post mitigation: {e}")
+
     db.refresh(card)
     return card
+
 
 
 @router.get("/lineage/latest")
