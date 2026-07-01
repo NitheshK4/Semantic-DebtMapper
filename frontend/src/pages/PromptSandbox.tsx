@@ -188,7 +188,6 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
     setDetectedVars(varList);
 
     // Synchronize inputs state: retain existing values, add empty for new keys
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setInputs((prev) => {
       const next: Record<string, string> = {};
       varList.forEach((v) => {

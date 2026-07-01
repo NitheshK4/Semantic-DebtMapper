@@ -1,8 +1,5 @@
-import asyncio
 import logging
 from datetime import datetime
-
-from arq import cron
 
 from app.core.config import settings
 from app.core.db import SessionLocal
@@ -126,8 +123,6 @@ class WorkerSettings:
         # Parse host/port from REDIS_URL
         # Default redis url: redis://redis:6379/0
         import urllib.parse
-
-        from redis import Redis
 
         parsed = urllib.parse.urlparse(settings.REDIS_URL)
         host = parsed.hostname or "redis"

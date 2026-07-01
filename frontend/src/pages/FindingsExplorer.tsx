@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Finding } from "../api/client";
 import { Search, Eye, Filter, CheckCircle, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -21,10 +21,20 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
   const detectors = ["all", "CMD", "ESF", "RMC", "HMD", "GFM"];
   const severities = ["all", "critical", "high", "medium", "low"];
 
-  // Reset page when filters change
-  useEffect(() => {
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
     setPage(1);
-  }, [detectorFilter, severityFilter, searchTerm]);
+  };
+
+  const handleDetectorChange = (val: string) => {
+    setDetectorFilter(val);
+    setPage(1);
+  };
+
+  const handleSeverityChange = (val: string) => {
+    setSeverityFilter(val);
+    setPage(1);
+  };
 
   // Filter logic
   const filteredFindings = findings.filter((f) => {
@@ -68,7 +78,7 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
               type="text"
               placeholder="Search target, segment, or recommendation..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full bg-[#0a0d16] border border-white/5 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
             />
           </div>
@@ -78,7 +88,7 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
             <Filter className="w-3.5 h-3.5 text-gray-500" />
             <select
               value={detectorFilter}
-              onChange={(e) => setDetectorFilter(e.target.value)}
+              onChange={(e) => handleDetectorChange(e.target.value)}
               className="bg-transparent text-xs text-gray-400 w-full focus:outline-none capitalize font-semibold"
             >
               {detectors.map((d) => (
@@ -98,7 +108,7 @@ export const FindingsExplorer: React.FC<FindingsExplorerProps> = ({
             <ShieldAlert className="w-3.5 h-3.5 text-gray-500" />
             <select
               value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
+              onChange={(e) => handleSeverityChange(e.target.value)}
               className="bg-transparent text-xs text-gray-400 w-full focus:outline-none capitalize font-semibold"
             >
               {severities.map((s) => (

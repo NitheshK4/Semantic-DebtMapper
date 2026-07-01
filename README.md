@@ -186,3 +186,12 @@ To immediately visualize semantic debt:
 2. Go to **Ingestion Center** in the sidebar.
 3. Click **"Load Support Ticket Demo"**. This will ingest a simulated dataset with injected semantic drifts (CMD, ESF, RMC, HMD, GFM).
 4. Navigate to the **Overview**, **Findings**, and **Lineage Graph** pages to inspect computed metrics and trace semantic failures
+
+---
+
+## 🧹 Code Cleanups & Linter Quality Checks
+
+A series of developer quality checks and cleanups were successfully completed to resolve linting warnings/errors and improve code health:
+- **Frontend Quality**: Fixed React state cascading render warnings inside `FindingsExplorer` and removed unused ESLint directives.
+- **Backend Quality**: Removed unused imports across background workers and services, and refactored redundant f-strings to static format strings.
+- **PEP8 Alignment**: Formatted services according to PEP8 guidelines and configured standard 88-character line limits in `.flake8` configuration.

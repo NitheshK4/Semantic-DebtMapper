@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.db_models import ActionCard, DetectorRun, Finding
+from app.models.db_models import ActionCard, Finding
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class RecommendationEngine:
                 steps = [
                     f"Extract subset of logs for class '{class_id}' before transition to new label schema",
                     "Distribute to annotators with revised labeling guidelines",
-                    f"Retrain classifier on corrected historical labels to align with new definition",
+                    "Retrain classifier on corrected historical labels to align with new definition",
                 ]
                 impact_score = 0.95
                 confidence = 0.90
@@ -131,7 +131,7 @@ class RecommendationEngine:
                 steps = [
                     f"Verify rule '{rule_id}' dependencies on feature '{feature}'",
                     "Migrate active rules to use the updated schema definitions",
-                    f"Remove stale feature logic from the data ingestion pipeline",
+                    "Remove stale feature logic from the data ingestion pipeline",
                 ]
                 impact_score = 0.75
                 confidence = 0.80
