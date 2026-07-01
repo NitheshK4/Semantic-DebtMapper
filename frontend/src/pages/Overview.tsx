@@ -108,6 +108,14 @@ export const Overview: React.FC<OverviewProps> = ({
           </div>
 
           <div className="relative mt-6 flex items-center justify-center">
+            {/* Breathing color glow behind the gauge */}
+            <div 
+              className="gauge-glow-effect" 
+              style={{ 
+                background: `radial-gradient(circle, ${band.stroke}24 0%, transparent 70%)`,
+                "--gauge-glow-color": band.stroke
+              } as React.CSSProperties}
+            ></div>
             {/* Fine tick indicators in circular layout */}
             <div className="absolute inset-0 flex items-center justify-center scale-110 pointer-events-none">
               <div className="w-full h-full border border-dashed border-white/[0.02] rounded-full"></div>
@@ -153,7 +161,7 @@ export const Overview: React.FC<OverviewProps> = ({
         </div>
 
         {/* SDS Trend Chart Card */}
-        <div className="glass-panel p-6 rounded-2xl lg:col-span-2 relative min-h-[260px]">
+        <div className="glass-panel glass-panel-hover p-6 rounded-2xl lg:col-span-2 relative min-h-[260px]">
           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">
             Semantic Debt Trend (SDS Timeline)
           </div>
@@ -278,7 +286,7 @@ export const Overview: React.FC<OverviewProps> = ({
         ].map((m, idx) => (
           <div
             key={idx}
-            className="glass-panel p-4 rounded-xl flex items-center space-x-3.5"
+            className="glass-panel glass-panel-hover p-4 rounded-xl flex items-center space-x-3.5"
           >
             <div className={`p-2 rounded-lg ${m.bg}`}>
               <m.icon className={`w-4 h-4 ${m.color}`} />

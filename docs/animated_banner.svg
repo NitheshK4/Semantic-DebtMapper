@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="100%" height="200">
+  <style>
+    .grid-line { stroke: rgba(255, 255, 255, 0.02); stroke-width: 1; }
+    .pulse-node-indigo { animation: pulseIndigo 4s infinite ease-in-out; }
+    .pulse-node-pink { animation: pulsePink 5s infinite ease-in-out; }
+    .pulse-node-emerald { animation: pulseEmerald 4.5s infinite ease-in-out; }
+    .radar-sweep { animation: sweep 12s infinite linear; transform-origin: 400px 100px; }
+    .line-flow { stroke-dasharray: 6 10; animation: flow 5s infinite linear; }
+    
+    @keyframes pulseIndigo {
+      0%, 100% { r: 6; fill: #6366f1; filter: drop-shadow(0 0 2px #6366f1); opacity: 0.6; }
+      50% { r: 10; fill: #818cf8; filter: drop-shadow(0 0 10px #818cf8); opacity: 0.95; }
+    }
+    @keyframes pulsePink {
+      0%, 100% { r: 5; fill: #ec4899; filter: drop-shadow(0 0 2px #ec4899); opacity: 0.5; }
+      50% { r: 9; fill: #f472b6; filter: drop-shadow(0 0 8px #f472b6); opacity: 0.9; }
+    }
+    @keyframes pulseEmerald {
+      0%, 100% { r: 7; fill: #10b981; filter: drop-shadow(0 0 2px #10b981); opacity: 0.6; }
+      50% { r: 11; fill: #34d399; filter: drop-shadow(0 0 12px #34d399); opacity: 0.95; }
+    }
+    @keyframes sweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes flow {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -50; }
+    }
+  </style>
+  
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#030408" rx="16" />
+  
+  <!-- Grid Pattern -->
+  <line x1="0" y1="50" x2="800" y2="50" class="grid-line" />
+  <line x1="0" y1="100" x2="800" y2="100" class="grid-line" />
+  <line x1="0" y1="150" x2="800" y2="150" class="grid-line" />
+  <line x1="100" y1="0" x2="100" y2="200" class="grid-line" />
+  <line x1="200" y1="0" x2="200" y2="200" class="grid-line" />
+  <line x1="300" y1="0" x2="300" y2="200" class="grid-line" />
+  <line x1="400" y1="0" x2="400" y2="200" class="grid-line" />
+  <line x1="500" y1="0" x2="500" y2="200" class="grid-line" />
+  <line x1="600" y1="0" x2="600" y2="200" class="grid-line" />
+  <line x1="700" y1="0" x2="700" y2="200" class="grid-line" />
+  
+  <!-- Connections (Flowing lines) -->
+  <path d="M 180 60 Q 300 20 450 120" fill="none" stroke="#6366f1" stroke-width="2" class="line-flow" opacity="0.5" />
+  <path d="M 450 120 T 700 80" fill="none" stroke="#ec4899" stroke-width="2" class="line-flow" opacity="0.5" />
+  <path d="M 180 140 C 300 180, 500 30, 700 130" fill="none" stroke="#10b981" stroke-width="2" class="line-flow" opacity="0.5" />
+
+  <!-- Radar Scan Sweep Effect -->
+  <line x1="400" y1="100" x2="800" y2="100" stroke="url(#radarGradient)" stroke-width="3" class="radar-sweep" opacity="0.3" />
+  
+  <defs>
+    <linearGradient id="radarGradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0" />
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.6" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Pulsating Nodes -->
+  <circle cx="180" cy="60" r="8" class="pulse-node-indigo" />
+  <circle cx="450" cy="120" r="6" class="pulse-node-pink" />
+  <circle cx="700" cy="80" r="10" class="pulse-node-emerald" />
+  <circle cx="180" cy="140" r="6" class="pulse-node-pink" />
+  <circle cx="700" cy="130" r="8" class="pulse-node-indigo" />
+  
+  <!-- Central Radar Core -->
+  <circle cx="400" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.02)" stroke-dasharray="4 8" />
+  <circle cx="400" cy="100" r="40" fill="none" stroke="rgba(255,255,255,0.01)" stroke-dasharray="2 4" />
+  
+  <!-- Title / Branding overlay -->
+  <text x="320" y="98" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="20" font-weight="800" letter-spacing="4">DEBT MAPPER</text>
+  <text x="340" y="116" fill="#6366f1" font-family="'Outfit', sans-serif" font-size="8" font-weight="700" letter-spacing="5">SEMANTIC OBSERVABILITY</text>
+</svg>

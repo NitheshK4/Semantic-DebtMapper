@@ -173,3 +173,30 @@ body {
 .font-cyber-mono {
   font-family: "JetBrains Mono", monospace;
 }
+
+/* Animated pulsing glow effect behind the SDS gauge */
+.gauge-glow-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+  animation: pulse-glow 3.5s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 25px var(--gauge-glow-color, rgba(99, 102, 241, 0.4)));
+  }
+}
+
