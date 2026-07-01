@@ -238,12 +238,19 @@ async def update_action_status(
     if new_status == "resolved" and old_status != "resolved":
         from app.services.mitigation_service import MitigationService
         from app.workers.worker import run_audit_task
+        from app.models.db_models import InferenceLog
         
         # Apply the actual database mitigation
         MitigationService.mitigate_action(db, project_id, card)
         
-        # Run a new audit run synchronously to update findings and SDS score instantly
-        as_of_str = "2026-06-15T00:00:00Z" if project.domain == "support_tickets" else datetime.now().isoformat()
+        # Dynamically determine reference timestamp from the latest inference log
+        latest_inf = (
+            db.query(InferenceLog)
+            .filter(InferenceLog.project_id == project_id)
+            .order_by(InferenceLog.ts.desc())
+            .first()
+        )
+        as_of_str = latest_inf.ts.isoformat() if latest_inf else datetime.now().isoformat()
         try:
             await run_audit_task(
                 ctx={},

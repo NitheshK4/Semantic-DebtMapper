@@ -105,7 +105,40 @@ class SandboxService:
 
     @staticmethod
     def get_mock_completion(prompt_text: str, mock_model: str) -> str:
-        """Simulate an LLM response based on the prompt text and selected model."""
+        """Simulate or invoke an LLM response based on the prompt text and selected model."""
+        from app.core.config import settings
+        import httpx
+
+        if settings.GEMINI_API_KEY:
+            api_key = settings.GEMINI_API_KEY
+            model_name = mock_model
+            if "gemini-2.5" in model_name:
+                model_name = model_name.replace("gemini-2.5", "gemini-1.5")
+            elif "gemini-2.5-pro" == model_name:
+                model_name = "gemini-1.5-pro"
+            elif "gemini-2.5-flash" == model_name:
+                model_name = "gemini-1.5-flash"
+            
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            try:
+                response = httpx.post(
+                    url,
+                    json={"contents": [{"parts": [{"text": prompt_text}]}]},
+                    headers={"Content-Type": "application/json"},
+                    timeout=10.0
+                )
+                if response.status_code == 200:
+                    resp_json = response.json()
+                    try:
+                        text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                        return f"[{mock_model} Live Response]\n\n{text}"
+                    except (KeyError, IndexError):
+                        logger.warning("Gemini response did not have expected format, falling back to mock.")
+                else:
+                    logger.warning(f"Gemini API returned status {response.status_code}: {response.text}")
+            except Exception as e:
+                logger.error(f"Failed to call Gemini API: {e}")
+
         # Clean prompt text for simple matching
         clean_prompt = prompt_text.lower()
         

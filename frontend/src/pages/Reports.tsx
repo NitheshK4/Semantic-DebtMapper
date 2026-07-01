@@ -6,6 +6,216 @@ interface ReportsProps {
   projectId: string;
 }
 
+const formatInlineText = (text: string): React.ReactNode[] => {
+  let parts: React.ReactNode[] = [text];
+
+  // 1. Parse Bold (**text**)
+  let newParts: React.ReactNode[] = [];
+  for (const part of parts) {
+    if (typeof part === "string") {
+      const splitBold = part.split(/\*\*([^*]+)\*\*/g);
+      for (let i = 0; i < splitBold.length; i++) {
+        if (i % 2 === 1) {
+          newParts.push(
+            <strong key={`b-${i}`} className="font-bold text-white">
+              {splitBold[i]}
+            </strong>,
+          );
+        } else {
+          newParts.push(splitBold[i]);
+        }
+      }
+    } else {
+      newParts.push(part);
+    }
+  }
+  parts = newParts;
+
+  // 2. Parse Inline Code (`code`)
+  newParts = [];
+  for (const part of parts) {
+    if (typeof part === "string") {
+      const splitCode = part.split(/`([^`]+)`/g);
+      for (let i = 0; i < splitCode.length; i++) {
+        if (i % 2 === 1) {
+          newParts.push(
+            <code
+              key={`c-${i}`}
+              className="font-mono bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-indigo-300 text-[11px]"
+            >
+              {splitCode[i]}
+            </code>,
+          );
+        } else {
+          newParts.push(splitCode[i]);
+        }
+      }
+    } else {
+      newParts.push(part);
+    }
+  }
+  return newParts;
+};
+
+const renderMarkdown = (markdown: string | null): React.ReactNode => {
+  if (!markdown) return null;
+  const lines = markdown.split("\n");
+  const elements: React.ReactNode[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // 1. Table Grouping
+    if (line.trim().startsWith("|")) {
+      const tableRows: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableRows.push(lines[i]);
+        i++;
+      }
+
+      if (tableRows.length > 0) {
+        const parseRow = (rowStr: string) => {
+          const parts = rowStr.split("|");
+          return parts.slice(1, parts.length - 1).map((p) => p.trim());
+        };
+
+        const headers = parseRow(tableRows[0]);
+        const bodyRows = tableRows.slice(1).filter((r) => !r.includes("---"));
+
+        elements.push(
+          <div key={`table-${i}`} className="overflow-x-auto my-4 border border-white/5 rounded-xl">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/5">
+                  {headers.map((h, idx) => (
+                    <th key={idx} className="p-3 font-bold text-gray-300 uppercase tracking-wider">
+                      {formatInlineText(h)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {bodyRows.map((rowStr, rIdx) => {
+                  const cells = parseRow(rowStr);
+                  return (
+                    <tr key={rIdx} className="hover:bg-white/[0.02] transition-colors">
+                      {cells.map((c, cIdx) => (
+                        <td key={cIdx} className="p-3 text-gray-400 font-medium">
+                          {formatInlineText(c)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+      continue;
+    }
+
+    // 2. Unordered/Task Lists Grouping
+    if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
+      const listItems: { text: string; isTask: boolean; isChecked: boolean; isIndented: boolean }[] = [];
+      while (
+        i < lines.length &&
+        (lines[i].trim().startsWith("- ") ||
+          lines[i].trim().startsWith("* ") ||
+          (lines[i].startsWith(" ") && lines[i].trim().length > 0))
+      ) {
+        const itemLine = lines[i];
+        const trimmed = itemLine.trim();
+        const isIndented = itemLine.startsWith(" ");
+        let text = trimmed.startsWith("- ") ? trimmed.slice(2) : trimmed.startsWith("* ") ? trimmed.slice(2) : trimmed;
+
+        let isTask = false;
+        let isChecked = false;
+        if (text.startsWith("[ ] ")) {
+          isTask = true;
+          isChecked = false;
+          text = text.slice(4);
+        } else if (text.startsWith("[x] ") || text.startsWith("[X] ")) {
+          isTask = true;
+          isChecked = true;
+          text = text.slice(4);
+        }
+
+        listItems.push({ text, isTask, isChecked, isIndented });
+        i++;
+      }
+
+      elements.push(
+        <ul key={`list-${i}`} className="space-y-1.5 my-3 list-none">
+          {listItems.map((item, idx) => (
+            <li
+              key={idx}
+              className={`flex items-start text-xs text-gray-400 ${item.isIndented ? "ml-6" : "ml-2"}`}
+            >
+              {item.isTask ? (
+                <input
+                  type="checkbox"
+                  checked={item.isChecked}
+                  readOnly
+                  className="mr-2 mt-0.5 rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-0 cursor-default"
+                />
+              ) : (
+                <span className="mr-2 text-indigo-400 font-bold select-none">•</span>
+              )}
+              <span className="flex-1 leading-relaxed">{formatInlineText(item.text)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // 3. Headers
+    if (line.startsWith("# ")) {
+      elements.push(
+        <h1 key={`h1-${i}`} className="text-xl font-bold text-white border-b border-white/5 pb-2 mt-6 mb-4">
+          {formatInlineText(line.replace("# ", ""))}
+        </h1>
+      );
+      i++;
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      elements.push(
+        <h2 key={`h2-${i}`} className="text-base font-bold text-indigo-400 mt-6 mb-3">
+          {formatInlineText(line.replace("## ", ""))}
+        </h2>
+      );
+      i++;
+      continue;
+    }
+    if (line.startsWith("### ")) {
+      elements.push(
+        <h3 key={`h3-${i}`} className="text-sm font-bold text-sky-400 mt-4 mb-2">
+          {formatInlineText(line.replace("### ", ""))}
+        </h3>
+      );
+      i++;
+      continue;
+    }
+
+    // 4. Spacer / Paragraph
+    if (line.trim() === "") {
+      elements.push(<div key={`space-${i}`} className="h-2" />);
+    } else {
+      elements.push(
+        <p key={`p-${i}`} className="text-xs text-gray-400 leading-relaxed my-2">
+          {formatInlineText(line)}
+        </p>
+      );
+    }
+    i++;
+  }
+
+  return elements;
+};
+
 export const Reports: React.FC<ReportsProps> = ({ projectId }) => {
   const [reportMd, setReportMd] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -122,73 +332,7 @@ export const Reports: React.FC<ReportsProps> = ({ projectId }) => {
         <div className="bg-gray-950/40 border border-gray-800/80 p-8 rounded-xl max-h-[500px] overflow-y-auto font-sans leading-relaxed text-sm text-gray-300">
           {/* Custom rendered preview */}
           <div className="prose prose-invert max-w-none space-y-4">
-            {reportMd?.split("\n").map((line, idx) => {
-              if (line.startsWith("# ")) {
-                return (
-                  <h1
-                    key={idx}
-                    className="text-2xl font-bold text-white border-b border-gray-800 pb-2 mb-4"
-                  >
-                    {line.replace("# ", "")}
-                  </h1>
-                );
-              }
-              if (line.startsWith("## ")) {
-                return (
-                  <h2
-                    key={idx}
-                    className="text-lg font-bold text-indigo-400 mt-6 mb-2"
-                  >
-                    {line.replace("## ", "")}
-                  </h2>
-                );
-              }
-              if (line.startsWith("### ")) {
-                return (
-                  <h3
-                    key={idx}
-                    className="text-base font-bold text-sky-400 mt-4 mb-1"
-                  >
-                    {line.replace("### ", "")}
-                  </h3>
-                );
-              }
-              if (line.startsWith("- ")) {
-                return (
-                  <li key={idx} className="ml-4 list-disc text-gray-300 mb-1">
-                    {line.replace("- ", "")}
-                  </li>
-                );
-              }
-              if (line.startsWith("|")) {
-                // Table line, skip header boundaries for preview, render simple layout or table format
-                if (line.includes("---")) return null;
-                const parts = line.split("|");
-                const cols = parts
-                  .slice(1, parts.length - 1)
-                  .map((c) => c.trim());
-                const isHeader =
-                  idx === 11 || line.toLowerCase().includes("detector"); // Rough check for header
-                return (
-                  <div
-                    key={idx}
-                    className={`grid grid-cols-5 gap-2 py-2 px-3 text-xs ${isHeader ? "bg-gray-900 font-bold border-y border-gray-850" : "border-b border-gray-900 hover:bg-white/5"}`}
-                  >
-                    {cols.map((c, cIdx) => (
-                      <div key={cIdx} className="overflow-hidden truncate">
-                        {c.replace(/\*\*/g, "")}
-                      </div>
-                    ))}
-                  </div>
-                );
-              }
-              if (line.trim() === "") return <div key={idx} className="h-2" />;
-              return (
-                <p key={idx} className="text-gray-300 leading-relaxed mb-2">
-                  {line}
-                </p>
-              );
-            })}
+            {renderMarkdown(reportMd)}
           </div>
         </div>
       )}

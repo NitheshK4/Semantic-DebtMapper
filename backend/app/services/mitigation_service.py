@@ -240,15 +240,48 @@ class MitigationService:
                     )
                     .all()
                 )
+                import ast
+
+                class FeatureRetirer(ast.NodeTransformer):
+                    def __init__(self, feature_name: str):
+                        self.feature_name = feature_name
+
+                    def visit_BoolOp(self, node: ast.BoolOp) -> ast.AST:
+                        node.values = [self.visit(value) for value in node.values]
+                        node.values = [v for v in node.values if v is not None]
+                        if not node.values:
+                            return None
+                        if len(node.values) == 1:
+                            return node.values[0]
+                        return node
+
+                    def visit_Compare(self, node: ast.Compare) -> ast.AST:
+                        if isinstance(node.left, ast.Name) and node.left.id == self.feature_name:
+                            return None
+                        for comp in node.comparators:
+                            if isinstance(comp, ast.Name) and comp.id == self.feature_name:
+                                return None
+                        return node
+
                 for rule in rules:
-                    if f"{feature} == 'platinum' and " in rule.expression:
-                        rule.expression = rule.expression.replace(
-                            f"{feature} == 'platinum' and ", ""
-                        )
-                    elif f"and {feature} == 'platinum'" in rule.expression:
-                        rule.expression = rule.expression.replace(
-                            f"and {feature} == 'platinum'", ""
-                        )
+                    try:
+                        tree = ast.parse(rule.expression, mode="eval")
+                        transformer = FeatureRetirer(feature)
+                        new_tree = transformer.visit(tree)
+                        if new_tree and getattr(new_tree, "body", None) is not None:
+                            rule.expression = ast.unparse(new_tree)
+                        else:
+                            rule.expression = "True"
+                    except Exception as e:
+                        logger.error(f"Failed to parse rule expression via AST, falling back: {e}")
+                        if f"{feature} == 'platinum' and " in rule.expression:
+                            rule.expression = rule.expression.replace(
+                                f"{feature} == 'platinum' and ", ""
+                            )
+                        elif f"and {feature} == 'platinum'" in rule.expression:
+                            rule.expression = rule.expression.replace(
+                                f"and {feature} == 'platinum'", ""
+                            )
                     db.add(rule)
                 db.commit()
                 logger.info(
