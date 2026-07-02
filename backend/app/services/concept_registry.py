@@ -135,3 +135,29 @@ class ConceptRegistry:
             .order_by(ConceptVersion.effective_from.desc())
             .first()
         )
+
+    @staticmethod
+    def delete_concept(db: Session, project_id: UUID, concept_key: str) -> bool:
+        """Delete a concept and cascade delete all its versions.
+
+        Args:
+            db: SQLAlchemy database session.
+            project_id: The unique identifier of the project.
+            concept_key: The key identifier for the concept.
+
+        Returns:
+            True if deleted, False if concept not found.
+        """
+        concept = (
+            db.query(Concept)
+            .filter(
+                Concept.project_id == project_id, Concept.concept_key == concept_key
+            )
+            .first()
+        )
+        if not concept:
+            return False
+        db.delete(concept)
+        db.commit()
+        return True
+

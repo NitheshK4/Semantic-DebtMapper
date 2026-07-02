@@ -373,3 +373,52 @@ def test_delete_business_rule(client):
     finally:
         # Cleanup
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)
+
+
+def test_delete_concept(client):
+    """Test deleting a concept and cascading deletion of its versions."""
+    # 1. Create project
+    proj_payload = {"name": "Test Delete Concept Project", "domain": "support_tickets"}
+    res = client.post("/api/v1/projects", json=proj_payload, headers=headers)
+    assert res.status_code == 201
+    project_id = res.json()["id"]
+
+    try:
+        # 2. Add a concept
+        concept_payload = {
+            "concept_key": "custom_concept",
+            "version": "v1",
+            "definition": "My custom definition",
+            "effective_from": "2026-01-01T00:00:00Z"
+        }
+        res = client.post(f"/api/v1/projects/{project_id}/concepts", json=concept_payload, headers=headers)
+        assert res.status_code == 200
+
+        # 3. List concepts to verify it exists
+        res = client.get(f"/api/v1/projects/{project_id}/concepts", headers=headers)
+        assert res.status_code == 200
+        assert len(res.json()) == 1
+        assert res.json()[0]["concept_key"] == "custom_concept"
+
+        # 4. Delete the concept
+        res = client.delete(f"/api/v1/projects/{project_id}/concepts/custom_concept", headers=headers)
+        assert res.status_code == 204
+
+        # 5. List concepts to verify it is gone
+        res = client.get(f"/api/v1/projects/{project_id}/concepts", headers=headers)
+        assert res.status_code == 200
+        assert len(res.json()) == 0
+
+        # 6. Attempt to delete non-existent concept (should fail with 404)
+        res = client.delete(f"/api/v1/projects/{project_id}/concepts/custom_concept", headers=headers)
+        assert res.status_code == 404
+
+        # 7. Attempt to delete concept on non-existent project
+        import uuid
+        res = client.delete(f"/api/v1/projects/{uuid.uuid4()}/concepts/custom_concept", headers=headers)
+        assert res.status_code == 404
+
+    finally:
+        # Cleanup
+        client.delete(f"/api/v1/projects/{project_id}", headers=headers)
+

@@ -94,6 +94,24 @@ def list_concepts(
     return ConceptRegistry.list_concepts(db, project_id)
 
 
+@router.delete("/{project_id}/concepts/{concept_key}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_concept(
+    project_id: UUID,
+    concept_key: str,
+    db: Session = Depends(get_db),
+    _=Depends(verify_api_key),
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    deleted = ConceptRegistry.delete_concept(db, project_id, concept_key)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Concept not found")
+    return None
+
+
+
 @router.post("/{project_id}/seed", status_code=status.HTTP_200_OK)
 def seed_project_data(
     project_id: UUID, db: Session = Depends(get_db), _=Depends(verify_api_key)
