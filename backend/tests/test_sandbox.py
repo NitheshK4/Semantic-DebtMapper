@@ -104,6 +104,21 @@ def test_sandbox_evaluation_endpoint(client):
         assert "urgent" in legacy_warning["concept"]
         assert "v1" in legacy_warning["message"]
 
+        # Test the rewrite endpoint
+        rewrite_payload = {
+            "template": "Analyze ticket: {{ticket_text}}. Urgent rule: Response must be within two hours per SLA policy v2 guidelines."
+        }
+        rewrite_response = client.post(
+            f"/api/v1/projects/{project_id}/sandbox/rewrite",
+            json=rewrite_payload,
+            headers=headers
+        )
+        assert rewrite_response.status_code == 200
+        rewrite_data = rewrite_response.json()
+        assert "4 hours" in rewrite_data["rewritten_template"]
+        assert "SLA policy v3" in rewrite_data["rewritten_template"]
+        assert "two hours" not in rewrite_data["rewritten_template"]
+
     finally:
         # 4. Clean up / Delete project
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)

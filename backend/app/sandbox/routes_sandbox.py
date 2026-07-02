@@ -23,6 +23,14 @@ class SandboxEvaluateResponse(BaseModel):
     warnings: list[dict] = Field(default_factory=list)
 
 
+class SandboxRewriteRequest(BaseModel):
+    template: str = Field(..., description="Prompt template to rewrite")
+
+
+class SandboxRewriteResponse(BaseModel):
+    rewritten_template: str
+
+
 def check_project_exists(project_id: UUID, db: Session):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
@@ -48,3 +56,16 @@ def evaluate_prompt(
         mock_response=mock_response,
         warnings=warnings
     )
+
+
+@router.post("/rewrite", response_model=SandboxRewriteResponse, status_code=status.HTTP_200_OK)
+def rewrite_prompt(
+    project_id: UUID,
+    payload: SandboxRewriteRequest,
+    db: Session = Depends(get_db),
+    _=Depends(verify_api_key),
+):
+    check_project_exists(project_id, db)
+    rewritten_template = SandboxService.rewrite_prompt(db, project_id, payload.template)
+    return SandboxRewriteResponse(rewritten_template=rewritten_template)
+

@@ -129,36 +129,108 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
     }, 0);
   };
 
-  const handleAutoFix = (warning: Warning) => {
-    let newTemplate = template;
-    if (warning.concept === "urgent") {
-      if (warning.type === "CONCEPT_METRIC_CONFLICT") {
-        newTemplate = newTemplate.replace(/2\s*(?:hours|hour|h|)-hour/gi, "4 hours");
-        newTemplate = newTemplate.replace(/2\s*(?:hours|hour|h)/gi, "4 hours");
-      } else if (warning.type === "LEGACY_CONCEPT_REFERENCE") {
-        newTemplate = newTemplate.replace(/two\s*hours/gi, "4 hours");
-        newTemplate = newTemplate.replace(/SLA\s*policy\s*v2/gi, "SLA policy v3");
-      }
+  const [rewriteSuggestion, setRewriteSuggestion] = useState<string | null>(null);
+  const [showDiffView, setShowDiffView] = useState<boolean>(false);
+  const [rewriting, setRewriting] = useState<boolean>(false);
+
+  const triggerAutoFix = async () => {
+    setRewriting(true);
+    setError(null);
+    try {
+      const res = await api.rewritePrompt(projectId, template);
+      setRewriteSuggestion(res.rewritten_template);
+      setShowDiffView(true);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch rewritten prompt suggestion.");
+    } finally {
+      setRewriting(false);
     }
-    setTemplate(newTemplate);
-    
-    setTimeout(async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await api.evaluatePrompt(projectId, newTemplate, inputs, mockModel);
-        setRenderedPrompt(res.rendered_prompt);
-        setMockResponse(res.mock_response);
-        setWarnings(res.warnings || []);
-        setEvaluated(true);
-      } catch (err) {
-        console.error(err);
-        setError("Auto-fix evaluation failed. Please run manually.");
-      } finally {
-        setLoading(false);
-      }
-    }, 100);
   };
+
+  const handleAcceptFix = () => {
+    if (rewriteSuggestion) {
+      setTemplate(rewriteSuggestion);
+      setShowDiffView(false);
+      const updatedTemplate = rewriteSuggestion;
+      setRewriteSuggestion(null);
+      
+      // Automatically evaluate the updated template
+      setTimeout(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const res = await api.evaluatePrompt(projectId, updatedTemplate, inputs, mockModel);
+          setRenderedPrompt(res.rendered_prompt);
+          setMockResponse(res.mock_response);
+          setWarnings(res.warnings || []);
+          setEvaluated(true);
+        } catch (err) {
+          console.error(err);
+          setError("Evaluation failed after accepting fix.");
+        } finally {
+          setLoading(false);
+        }
+      }, 100);
+    }
+  };
+
+  const renderSideBySideDiff = () => {
+    if (!rewriteSuggestion) return null;
+    const originalLines = template.split("\n");
+    const rewrittenLines = rewriteSuggestion.split("\n");
+    
+    const maxLines = Math.max(originalLines.length, rewrittenLines.length);
+    const linedDiffs = [];
+    for (let i = 0; i < maxLines; i++) {
+      linedDiffs.push({
+        orig: originalLines[i] !== undefined ? originalLines[i] : "",
+        newVal: rewrittenLines[i] !== undefined ? rewrittenLines[i] : "",
+      });
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-mono">
+        {/* Original */}
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-bold text-red-400/90 uppercase tracking-wider pb-1 border-b border-red-500/10 flex items-center">
+            <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+            Original Prompt Template
+          </div>
+          <div className="bg-red-950/[0.04] border border-red-500/15 rounded-xl p-4 max-h-[320px] overflow-y-auto space-y-0.5 leading-relaxed text-gray-400 shadow-inner">
+            {linedDiffs.map((d, idx) => {
+              const isDifferent = d.orig !== d.newVal;
+              return (
+                <div key={idx} className={`px-1.5 py-0.5 rounded transition-colors ${isDifferent ? "bg-red-500/15 text-red-200" : ""}`}>
+                  <span className="text-gray-600 mr-2 select-none w-5 inline-block text-right">{idx + 1}</span>
+                  {d.orig || <span className="opacity-0">.</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* Suggestion */}
+        <div className="space-y-1.5">
+          <div className="text-[10px] font-bold text-emerald-400/90 uppercase tracking-wider pb-1 border-b border-emerald-500/10 flex items-center">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+            Proposed Prompt (AI-Corrected)
+          </div>
+          <div className="bg-emerald-950/[0.04] border border-emerald-500/15 rounded-xl p-4 max-h-[320px] overflow-y-auto space-y-0.5 leading-relaxed text-gray-400 shadow-inner">
+            {linedDiffs.map((d, idx) => {
+              const isDifferent = d.orig !== d.newVal;
+              return (
+                <div key={idx} className={`px-1.5 py-0.5 rounded transition-colors ${isDifferent ? "bg-emerald-500/20 text-emerald-200" : ""}`}>
+                  <span className="text-gray-600 mr-2 select-none w-5 inline-block text-right">{idx + 1}</span>
+                  {d.newVal || <span className="opacity-0">.</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
 
   // Parse variables from template
   useEffect(() => {
@@ -541,18 +613,28 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
                             <strong className="uppercase text-[9px] tracking-wider block mb-0.5">Recommendation:</strong>
                             {w.recommendation}
                             
-                            {(w.concept === "urgent" && (w.type === "CONCEPT_METRIC_CONFLICT" || w.type === "LEGACY_CONCEPT_REFERENCE")) && (
-                              <button
-                                onClick={() => handleAutoFix(w)}
-                                className={`mt-2 px-3 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-colors border cursor-pointer block ${
-                                  isHigh
-                                    ? "bg-red-500/20 hover:bg-red-500/35 border-red-500/30 text-red-200"
-                                    : "bg-amber-500/20 hover:bg-amber-500/35 border-amber-500/30 text-amber-200"
-                                }`}
-                              >
-                                Apply Auto-Fix
-                              </button>
-                            )}
+                            <button
+                              onClick={triggerAutoFix}
+                              disabled={rewriting}
+                              className={`mt-2 px-3 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center justify-center space-x-1.5 ${
+                                isHigh
+                                  ? "bg-red-500/20 hover:bg-red-500/35 border-red-500/30 text-red-200"
+                                  : "bg-amber-500/20 hover:bg-amber-500/35 border-amber-500/30 text-amber-200"
+                              }`}
+                            >
+                              {rewriting ? (
+                                <>
+                                  <RefreshCw className="w-3 h-3 animate-spin mr-1.5" />
+                                  <span>Rewriting...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3 h-3 text-white mr-1.5" />
+                                  <span>Apply Auto-Fix</span>
+                                </>
+                              )}
+                            </button>
+
                           </div>
                         </div>
                       );
@@ -597,6 +679,46 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
         </div>
 
       </div>
+
+      {showDiffView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="glass-panel max-w-4xl w-full p-6 rounded-2xl border border-white/10 space-y-6 shadow-2xl bg-[#090d1a]/95">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center">
+                <Sparkles className="w-5 h-5 text-indigo-400 mr-2 animate-pulse" />
+                Review AI-Suggested Fixes
+              </h3>
+              <button
+                onClick={() => setShowDiffView(false)}
+                className="text-gray-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Gemini analyzed your prompt against the active Concept Registry and proposed these updates to resolve semantic drift issues.
+            </p>
+
+            {renderSideBySideDiff()}
+
+            <div className="flex items-center justify-end space-x-3 pt-4 border-t border-white/5">
+              <button
+                onClick={() => setShowDiffView(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition-all bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer"
+              >
+                Reject Suggestion
+              </button>
+              <button
+                onClick={handleAcceptFix}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] cursor-pointer"
+              >
+                Accept & Re-evaluate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -158,3 +158,105 @@ class SandboxService:
             
         # Default fallback completion
         return f"[{mock_model} Completion]\n\nReceived prompt of length {len(prompt_text)} characters.\n\nEvaluation Summary:\nThe prompt template has been processed. The model has read instructions and parameters successfully. Mocks reflect system telemetry."
+
+    @staticmethod
+    def rewrite_prompt(db: Session, project_id: UUID, template: str) -> str:
+        """Rewrite prompt template to fix semantic debt warnings using Gemini API or rule-based mapping."""
+        warnings = SandboxService.run_semantic_debt_check(db, project_id, template)
+        if not warnings:
+            return template
+
+        from app.core.config import settings
+        import httpx
+
+        # Collect information about concepts that have warnings
+        concepts_info = []
+        concepts = db.query(Concept).filter(Concept.project_id == project_id).all()
+        for c in concepts:
+            key = c.concept_key.lower()
+            if any(w.get("concept") == key for w in warnings):
+                active_version = db.query(ConceptVersion).filter(
+                    ConceptVersion.concept_id == c.id,
+                    ConceptVersion.effective_to.is_(None)
+                ).first()
+                historical_versions = db.query(ConceptVersion).filter(
+                    ConceptVersion.concept_id == c.id,
+                    ConceptVersion.effective_to.is_not(None)
+                ).order_by(ConceptVersion.effective_from.desc()).all()
+                
+                active_def = active_version.definition if active_version else ""
+                hist_defs = [hv.definition for hv in historical_versions]
+                concepts_info.append({
+                    "concept": key,
+                    "active_definition": active_def,
+                    "legacy_definitions": hist_defs
+                })
+
+        if settings.GEMINI_API_KEY and concepts_info:
+            api_key = settings.GEMINI_API_KEY
+            model_name = "gemini-1.5-flash"  # standard fast model for rewriting
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            
+            # Construct instructions for the LLM
+            prompt = (
+                "You are an expert AI prompt engineer and safety optimizer. "
+                "Your task is to rewrite the given prompt template to resolve all semantic debt warnings "
+                "by replacing obsolete metrics, legacy terms, or outdated rules with the active definitions provided.\n\n"
+                "Here are the active concept definitions and their legacy definitions:\n"
+            )
+            for info in concepts_info:
+                prompt += f"- Concept: '{info['concept']}'\n"
+                prompt += f"  Active/Correct Definition: \"{info['active_definition']}\"\n"
+                if info['legacy_definitions']:
+                    prompt += f"  Legacy/Outdated definitions to replace: {info['legacy_definitions']}\n"
+            
+            prompt += (
+                "\nOriginal Prompt Template:\n"
+                f"\"\"\"\n{template}\n\"\"\"\n\n"
+                "Please output ONLY the rewritten prompt template. "
+                "Keep all formatting, system/user structure, and template variables like {{ticket_text}} intact. "
+                "Only correct the specific parts referencing outdated/legacy concepts or SLAs to match the Active Definitions. "
+                "Do not include any chat formatting, markdown blocks (other than preserving the original prompt's format), or explanations."
+            )
+            
+            try:
+                response = httpx.post(
+                    url,
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    headers={"Content-Type": "application/json"},
+                    timeout=10.0
+                )
+                if response.status_code == 200:
+                    resp_json = response.json()
+                    try:
+                        text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                        text = text.strip()
+                        if text.startswith("```"):
+                            lines = text.splitlines()
+                            if lines[0].startswith("```"):
+                                lines = lines[1:]
+                            if lines and lines[-1].startswith("```"):
+                                lines = lines[:-1]
+                            text = "\n".join(lines).strip()
+                        return text
+                    except (KeyError, IndexError):
+                        logger.warning("Gemini response format issue in rewrite, using fallback.")
+                else:
+                    logger.warning(f"Gemini API returned status {response.status_code}: {response.text}")
+            except Exception as e:
+                logger.error(f"Failed to call Gemini API for prompt rewrite: {e}")
+
+        # Fallback rule-based rewriter
+        rewritten = template
+        for w in warnings:
+            concept = w.get("concept")
+            if concept == "urgent":
+                if w.get("type") == "CONCEPT_METRIC_CONFLICT":
+                    rewritten = re.sub(r'\b2\s*(?:hours|hour|h|)-hour\b', "4 hours", rewritten, flags=re.IGNORECASE)
+                    rewritten = re.sub(r'\b2\s*(?:hours|hour|h)\b', "4 hours", rewritten, flags=re.IGNORECASE)
+                elif w.get("type") == "LEGACY_CONCEPT_REFERENCE":
+                    rewritten = re.sub(r'\btwo\s*hours\b', "4 hours", rewritten, flags=re.IGNORECASE)
+                    rewritten = re.sub(r'\bSLA\s*policy\s*v2\b', "SLA policy v3", rewritten, flags=re.IGNORECASE)
+                    
+        return rewritten
+

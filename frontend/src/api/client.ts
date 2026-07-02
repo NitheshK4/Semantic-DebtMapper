@@ -361,4 +361,24 @@ export const api = {
     );
     return res.json();
   },
+
+  rewritePrompt: async (
+    projectId: string,
+    template: string,
+  ): Promise<{
+    rewritten_template: string;
+  }> => {
+    const res = await fetch(
+      `${API_URL}/projects/${projectId}/sandbox/rewrite`,
+      {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          template,
+        }),
+      },
+    );
+    return res.json();
+  },
 };
+
