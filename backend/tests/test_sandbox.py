@@ -119,6 +119,21 @@ def test_sandbox_evaluation_endpoint(client):
         assert "SLA policy v3" in rewrite_data["rewritten_template"]
         assert "two hours" not in rewrite_data["rewritten_template"]
 
+        # Test internal SLA conflict detection
+        conflict_payload = {
+            "template": "SLA for urgent is 2 hours. In other cases, SLA is 4 hours.",
+            "inputs": {},
+            "mock_model": "gemini-2.5-pro"
+        }
+        conflict_response = client.post(
+            f"/api/v1/projects/{project_id}/sandbox/evaluate",
+            json=conflict_payload,
+            headers=headers
+        )
+        assert conflict_response.status_code == 200
+        conflict_warnings = conflict_response.json()["warnings"]
+        assert any(w["type"] == "INTERNAL_METRIC_CONFLICT" for w in conflict_warnings)
+
     finally:
         # 4. Clean up / Delete project
         client.delete(f"/api/v1/projects/{project_id}", headers=headers)

@@ -100,6 +100,22 @@ class SandboxService:
                                 "message": "Prompt instructs response SLA of 2 hours, but active 'urgent' concept SLA is defined as 4 hours.",
                                 "recommendation": "Change prompt SLA response target to 4 hours."
                             })
+        # Check for multiple conflicting response time definitions within the prompt text itself (internal SLA metric conflict)
+        sla_hours = set()
+        for match in re.finditer(r'\b(\d+|two|four)\s*(?:hours|hour|h\b)', prompt_text.lower()):
+            val_str = match.group(1)
+            if val_str in ("2", "two"):
+                sla_hours.add(2)
+            elif val_str in ("4", "four"):
+                sla_hours.add(4)
+        if len(sla_hours) > 1:
+            warnings.append({
+                "concept": "urgent",
+                "type": "INTERNAL_METRIC_CONFLICT",
+                "severity": "high",
+                "message": f"Prompt template contains conflicting SLA response metrics: {list(sla_hours)} hours. This causes ambiguity in LLM class assignment.",
+                "recommendation": "Unify prompt SLA response targets to a single definition (e.g. 4 hours per SLA policy v3)."
+            })
 
         return warnings
 
