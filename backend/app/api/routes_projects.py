@@ -13,7 +13,7 @@ from app.core.db import get_db
 from app.core.security import verify_api_key
 from app.models.db_models import Project
 from app.models.schemas import (BusinessRuleIngest, ClassDefinition,
-                                ConceptCreate, ConceptOut, InferenceLogIngest,
+                                ConceptCreate, ConceptOut, ConceptVersionOut, InferenceLogIngest,
                                 LabelSchemaIngest, ModelVersionIngest,
                                 OverrideLogIngest, ProjectCreate, ProjectOut,
                                 PromptVersionIngest)
@@ -109,6 +109,30 @@ def delete_concept(
     if not deleted:
         raise HTTPException(status_code=404, detail="Concept not found")
     return None
+
+
+@router.get("/{project_id}/concepts/{concept_key}/history", response_model=List[ConceptVersionOut])
+def get_concept_history(
+    project_id: UUID,
+    concept_key: str,
+    db: Session = Depends(get_db),
+    _=Depends(verify_api_key),
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    from app.models.db_models import Concept
+    concept = (
+        db.query(Concept)
+        .filter(Concept.project_id == project_id, Concept.concept_key == concept_key)
+        .first()
+    )
+    if not concept:
+        raise HTTPException(status_code=404, detail="Concept not found")
+
+    return sorted(concept.versions, key=lambda x: x.effective_from, reverse=True)
+
 
 
 

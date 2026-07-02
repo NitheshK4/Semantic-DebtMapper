@@ -380,5 +380,26 @@ export const api = {
     );
     return res.json();
   },
+
+  getConceptHistory: async (
+    projectId: string,
+    conceptKey: string,
+  ): Promise<{
+    id: string;
+    version: string;
+    definition: string;
+    effective_from: string;
+    effective_to: string | null;
+    created_at: string;
+  }[]> => {
+    const res = await fetch(
+      `${API_URL}/projects/${projectId}/concepts/${conceptKey}/history`,
+      {
+        method: "GET",
+        headers: getHeaders(),
+      },
+    );
+    return res.json();
+  },
 };
 

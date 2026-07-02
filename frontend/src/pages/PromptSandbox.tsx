@@ -11,6 +11,7 @@ import {
   Variable,
   CheckCircle,
   BookOpen,
+  History,
 } from "lucide-react";
 
 interface PromptSandboxProps {
@@ -132,6 +133,42 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
   const [rewriteSuggestion, setRewriteSuggestion] = useState<string | null>(null);
   const [showDiffView, setShowDiffView] = useState<boolean>(false);
   const [rewriting, setRewriting] = useState<boolean>(false);
+
+  const [expandedConcept, setExpandedConcept] = useState<string | null>(null);
+  const [conceptHistory, setConceptHistory] = useState<Record<string, {
+    id: string;
+    version: string;
+    definition: string;
+    effective_from: string;
+    effective_to: string | null;
+    created_at: string;
+  }[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+
+  const toggleConceptHistory = async (key: string) => {
+    if (expandedConcept === key) {
+      setExpandedConcept(null);
+      return;
+    }
+    
+    setExpandedConcept(key);
+    
+    if (!conceptHistory[key]) {
+      setLoadingHistory(true);
+      try {
+        const history = await api.getConceptHistory(projectId, key);
+        setConceptHistory(prev => ({
+          ...prev,
+          [key]: history
+        }));
+      } catch (err) {
+        console.error("Failed to fetch concept history:", err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
+  };
+
 
   const triggerAutoFix = async () => {
     setRewriting(true);
@@ -417,13 +454,72 @@ export const PromptSandbox: React.FC<PromptSandboxProps> = ({ projectId }) => {
                             <span className="text-[10px] font-bold text-indigo-300 font-mono tracking-wider">
                               {c.concept_key}
                             </span>
-                            <span className="text-[8px] font-mono text-gray-500 bg-white/5 px-1 py-0.5 rounded">
-                              {activeVer?.version || "v1"}
-                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="text-[8px] font-mono text-gray-500 bg-white/5 px-1 py-0.5 rounded">
+                                {activeVer?.version || "v1"}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleConceptHistory(c.concept_key);
+                                }}
+                                className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-indigo-400 transition-colors cursor-pointer"
+                                title="View Version History"
+                              >
+                                <History className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                           {activeVer && (
                             <div className="text-[9px] text-gray-400 leading-snug line-clamp-3 hover:line-clamp-none transition-all">
                               {activeVer.definition}
+                            </div>
+                          )}
+                          
+                          {expandedConcept === c.concept_key && (
+                            <div className="mt-3.5 pt-3 border-t border-white/5 space-y-3" onClick={(e) => e.stopPropagation()}>
+                              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider flex items-center">
+                                <History className="w-3 h-3 text-indigo-400 mr-1.5" />
+                                Version History
+                              </div>
+                              {loadingHistory && !conceptHistory[c.concept_key] ? (
+                                <div className="text-[9px] text-gray-500 italic py-1 flex items-center space-x-1.5">
+                                  <RefreshCw className="w-2.5 h-2.5 animate-spin text-indigo-500" />
+                                  <span>Loading history...</span>
+                                </div>
+                              ) : (
+                                <div className="relative pl-3.5 border-l border-white/5 space-y-3.5 py-1">
+                                  {(conceptHistory[c.concept_key] || []).map((v) => {
+                                    const isActive = !v.effective_to;
+                                    const fromDate = new Date(v.effective_from).toLocaleDateString(undefined, {month: 'short', year: 'numeric'});
+                                    const toDate = v.effective_to 
+                                      ? new Date(v.effective_to).toLocaleDateString(undefined, {month: 'short', year: 'numeric'}) 
+                                      : 'Present';
+                                    
+                                    return (
+                                      <div key={v.id} className="relative space-y-1">
+                                        <div className={`absolute -left-[18.5px] top-1 w-2.5 h-2.5 rounded-full border ${
+                                          isActive 
+                                            ? "bg-indigo-500 border-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
+                                            : "bg-zinc-800 border-zinc-700"
+                                        }`}></div>
+                                        
+                                        <div className="flex items-center justify-between text-[8px] font-mono">
+                                          <span className={`font-bold ${isActive ? "text-indigo-300" : "text-gray-400"}`}>
+                                            {v.version} {isActive && "(Active)"}
+                                          </span>
+                                          <span className="text-gray-500">
+                                            {fromDate} - {toDate}
+                                          </span>
+                                        </div>
+                                        <div className="text-[9px] text-gray-400 leading-normal bg-[#04060b]/40 border border-white/[0.02] p-1.5 rounded-lg">
+                                          {v.definition}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
